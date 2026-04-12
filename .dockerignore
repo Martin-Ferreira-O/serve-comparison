@@ -1,0 +1,16 @@
+# flyctl launch added from .gitignore
+**/build
+**/serve_comparison.egg-info
+**/__pycache__
+**/**/__pycache__
+**/data
+**/*.sqlite3
+**/*.sqlite3-shm
+**/*.sqlite3-wal
+**/.env
+**/.venv   
+
+# flyctl launch added from .pytest_cache/.gitignore
+# Created by pytest automatically.
+.pytest_cache/**/*
+fly.toml
