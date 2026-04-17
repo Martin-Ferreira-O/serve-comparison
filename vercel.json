@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.py"
+    }
+  ],
+  "env": {
+    "COMPARISON_INVITES_PATH": "data/comparison_claim_invites.json",
+    "COMPARISON_SQLITE_PATH": "/tmp/comparison.sqlite3"
+  }
+}
