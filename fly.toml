@@ -9,12 +9,8 @@ primary_region = 'dfw'
 [build]
 
 [env]
-  COMPARISON_INVITES_PATH = '/data/comparison_claim_invites.json'
-  COMPARISON_SQLITE_PATH = '/data/comparison.sqlite3'
-
-[[mounts]]
-  source = 'comparison_data'
-  destination = '/data'
+  COMPARISON_INVITES_PATH = 'data/comparison_claim_invites.json'
+  # DATABASE_URL must be set as a secret: fly secrets set DATABASE_URL="postgresql://..."
 
 [http_service]
   internal_port = 8000

@@ -85,7 +85,7 @@ def _load_invites(path: Path) -> dict[str, str]:
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or Settings.load()
-    store = ComparisonSqliteStore(settings.sqlite_path)
+    store = ComparisonSqliteStore(settings.database_url)
     store.sync_claim_invites(_load_invites(settings.invites_path))
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
@@ -139,10 +139,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.get("/health")
     async def health() -> dict:
-        return {
-            "status": "ok",
-            "sqlite_path": str(settings.sqlite_path),
-        }
+        return {"status": "ok", "database": "postgresql"}
 
     @app.post("/api/comparison/sync")
     async def sync(payload: ComparisonSyncRequest) -> dict:

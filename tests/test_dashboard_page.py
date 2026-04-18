@@ -1,10 +1,18 @@
+import os
+
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import create_app
 
+pytestmark = pytest.mark.skipif(
+    not os.getenv("DATABASE_URL"),
+    reason="DATABASE_URL no configurado — se omiten tests de integración",
+)
+
 
 def test_dashboard_page_renders(tmp_path, monkeypatch):
-    monkeypatch.setenv("COMPARISON_SQLITE_PATH", str(tmp_path / "comparison.sqlite3"))
+    monkeypatch.setenv("COMPARISON_INVITES_PATH", str(tmp_path / "invites.json"))
     client = TestClient(create_app())
 
     response = client.get("/")
@@ -14,7 +22,7 @@ def test_dashboard_page_renders(tmp_path, monkeypatch):
 
 
 def test_dashboard_page_serves_comparison_assets(tmp_path, monkeypatch):
-    monkeypatch.setenv("COMPARISON_SQLITE_PATH", str(tmp_path / "comparison.sqlite3"))
+    monkeypatch.setenv("COMPARISON_INVITES_PATH", str(tmp_path / "invites.json"))
     client = TestClient(create_app())
 
     response = client.get("/")

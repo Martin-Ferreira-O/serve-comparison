@@ -1,9 +1,19 @@
+import os
+
+import psycopg
+import pytest
+
 from app.models import (
     ComparisonAssessmentPayload,
     ComparisonCoursePayload,
     ComparisonSyncPayload,
 )
 from app.persistence.comparison_sqlite_store import ComparisonSqliteStore
+
+pytestmark = pytest.mark.skipif(
+    not os.getenv("DATABASE_URL"),
+    reason="DATABASE_URL no configurado — se omiten tests de PostgreSQL",
+)
 
 
 def _payload(name: str, claim_code: str | None = None, sync_token: str | None = None):
@@ -39,8 +49,19 @@ def _payload(name: str, claim_code: str | None = None, sync_token: str | None = 
     )
 
 
-def test_claim_and_replace_snapshot_issues_sync_token(tmp_path):
-    store = ComparisonSqliteStore(tmp_path / "comparison.sqlite3")
+@pytest.fixture()
+def store():
+    database_url = os.environ["DATABASE_URL"]
+    s = ComparisonSqliteStore(database_url)
+    yield s
+    with psycopg.connect(database_url) as conn:
+        conn.execute(
+            "TRUNCATE participant_assessments, participant_course_attempts, "
+            "sync_runs, courses, claim_invites, participants RESTART IDENTITY CASCADE"
+        )
+
+
+def test_claim_and_replace_snapshot_issues_sync_token(store):
     store.sync_claim_invites({"Martin A.": "claim-martin"})
 
     identity = store.claim_and_replace_snapshot(
@@ -54,8 +75,7 @@ def test_claim_and_replace_snapshot_issues_sync_token(tmp_path):
     assert store.load_dashboard_rows()
 
 
-def test_claim_requires_matching_preassigned_code(tmp_path):
-    store = ComparisonSqliteStore(tmp_path / "comparison.sqlite3")
+def test_claim_requires_matching_preassigned_code(store):
     store.sync_claim_invites({"Martin A.": "claim-martin"})
 
     issued_token = store.claim_identity(
@@ -66,8 +86,7 @@ def test_claim_requires_matching_preassigned_code(tmp_path):
     assert issued_token
 
 
-def test_revoked_invite_cannot_be_claimed_after_resync(tmp_path):
-    store = ComparisonSqliteStore(tmp_path / "comparison.sqlite3")
+def test_revoked_invite_cannot_be_claimed_after_resync(store):
     store.sync_claim_invites({"Martin A.": "claim-martin"})
 
     store.sync_claim_invites({})
@@ -80,8 +99,7 @@ def test_revoked_invite_cannot_be_claimed_after_resync(tmp_path):
         raise AssertionError("Expected PermissionError")
 
 
-def test_resync_updates_course_metadata_for_existing_canonical_key(tmp_path):
-    store = ComparisonSqliteStore(tmp_path / "comparison.sqlite3")
+def test_resync_updates_course_metadata_for_existing_canonical_key(store):
     store.sync_claim_invites({"Martin A.": "claim-martin"})
     issued_token = store.claim_identity(
         display_name="Martin A.",
@@ -117,8 +135,7 @@ def test_resync_updates_course_metadata_for_existing_canonical_key(tmp_path):
     assert rows[0]["course_title"] == "Programacion Actualizada"
 
 
-def test_replace_snapshot_rejects_wrong_token(tmp_path):
-    store = ComparisonSqliteStore(tmp_path / "comparison.sqlite3")
+def test_replace_snapshot_rejects_wrong_token(store):
     store.sync_claim_invites({"Martin A.": "claim-martin"})
     identity = store.claim_and_replace_snapshot(
         display_name="Martin A.",
@@ -143,9 +160,7 @@ def test_replace_snapshot_rejects_wrong_token(tmp_path):
     )
 
 
-def test_replace_snapshot_requires_sync_token(tmp_path):
-    store = ComparisonSqliteStore(tmp_path / "comparison.sqlite3")
-
+def test_replace_snapshot_requires_sync_token(store):
     try:
         store.replace_participant_snapshot(_payload("Martin A."))
     except PermissionError as error:
