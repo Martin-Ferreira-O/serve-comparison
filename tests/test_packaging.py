@@ -3,6 +3,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 
 def test_dockerfile_copies_app_before_install():
     dockerfile = Path(__file__).resolve().parents[1] / "Dockerfile"
@@ -14,10 +16,13 @@ def test_dockerfile_copies_app_before_install():
     assert copy_app_index < install_index
 
 
+@pytest.mark.skipif(
+    not os.getenv("DATABASE_URL"),
+    reason="DATABASE_URL no configurado — se omite test de instalación completa",
+)
 def test_installed_package_can_start_app_and_render_dashboard(tmp_path):
     repo_root = Path(__file__).resolve().parents[1]
     install_target = tmp_path / "site"
-    sqlite_path = tmp_path / "comparison.sqlite3"
 
     subprocess.run(
         [
@@ -35,7 +40,6 @@ def test_installed_package_can_start_app_and_render_dashboard(tmp_path):
 
     env = os.environ.copy()
     env["PYTHONPATH"] = str(install_target)
-    env["COMPARISON_SQLITE_PATH"] = str(sqlite_path)
 
     subprocess.run(
         [

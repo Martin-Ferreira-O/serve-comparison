@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import secrets
-import sqlite3
 from contextlib import contextmanager
-from pathlib import Path
 from typing import Iterator
+
+import psycopg
+from psycopg.rows import dict_row
 
 from app.models import ComparisonIdentity, ComparisonSyncPayload
 
@@ -15,86 +16,92 @@ def _hash_token(raw: str) -> str:
 
 
 class ComparisonSqliteStore:
-    def __init__(self, database_path: Path):
-        self._database_path = database_path
-        self._database_path.parent.mkdir(parents=True, exist_ok=True)
+    def __init__(self, database_url: str):
+        self._database_url = database_url
         self._ensure_schema()
 
     @contextmanager
-    def _connect(self) -> Iterator[sqlite3.Connection]:
-        connection = sqlite3.connect(self._database_path)
-        connection.row_factory = sqlite3.Row
-        try:
+    def _connect(self) -> Iterator[psycopg.Connection]:
+        with psycopg.connect(self._database_url, row_factory=dict_row) as connection:
             yield connection
-            connection.commit()
-        finally:
-            connection.close()
 
     def _ensure_schema(self) -> None:
-        with self._connect() as connection:
-            connection.executescript(
-                """
-                CREATE TABLE IF NOT EXISTS participants (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    display_name TEXT NOT NULL UNIQUE,
-                    sync_token_hash TEXT NOT NULL,
-                    claimed_at TEXT NOT NULL,
-                    latest_synced_at TEXT,
-                    is_active INTEGER NOT NULL DEFAULT 1
-                );
-                CREATE TABLE IF NOT EXISTS claim_invites (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    display_name TEXT NOT NULL UNIQUE,
-                    claim_code_hash TEXT NOT NULL,
-                    claimed_at TEXT,
-                    participant_id INTEGER
-                );
-                CREATE TABLE IF NOT EXISTS sync_runs (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    participant_id INTEGER NOT NULL,
-                    received_at TEXT NOT NULL,
-                    status TEXT NOT NULL,
-                    payload_version TEXT NOT NULL,
-                    courses_count INTEGER NOT NULL,
-                    assessments_count INTEGER NOT NULL
-                );
-                CREATE TABLE IF NOT EXISTS courses (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    canonical_course_key TEXT NOT NULL UNIQUE,
-                    course_code TEXT NOT NULL,
-                    course_title TEXT NOT NULL
-                );
-                CREATE TABLE IF NOT EXISTS participant_course_attempts (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    participant_id INTEGER NOT NULL,
-                    course_id INTEGER NOT NULL,
-                    term_code TEXT NOT NULL,
-                    term_label TEXT NOT NULL,
-                    section TEXT,
-                    status TEXT NOT NULL,
-                    current_grade REAL,
-                    final_grade REAL,
-                    comparison_grade REAL,
-                    components_available INTEGER NOT NULL DEFAULT 0
-                );
-                CREATE TABLE IF NOT EXISTS participant_assessments (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    course_attempt_id INTEGER NOT NULL,
-                    canonical_assessment_key TEXT NOT NULL,
-                    assessment_name TEXT NOT NULL,
-                    weight REAL NOT NULL,
-                    grade REAL,
-                    grade_text TEXT NOT NULL,
-                    must_pass INTEGER NOT NULL,
-                    order_index INTEGER NOT NULL
-                );
-                """
+        statements = [
+            """
+            CREATE TABLE IF NOT EXISTS participants (
+                id SERIAL PRIMARY KEY,
+                display_name TEXT NOT NULL UNIQUE,
+                sync_token_hash TEXT NOT NULL,
+                claimed_at TEXT NOT NULL,
+                latest_synced_at TEXT,
+                is_active INTEGER NOT NULL DEFAULT 1
             )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS claim_invites (
+                id SERIAL PRIMARY KEY,
+                display_name TEXT NOT NULL UNIQUE,
+                claim_code_hash TEXT NOT NULL,
+                claimed_at TEXT,
+                participant_id INTEGER
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS sync_runs (
+                id SERIAL PRIMARY KEY,
+                participant_id INTEGER NOT NULL,
+                received_at TEXT NOT NULL,
+                status TEXT NOT NULL,
+                payload_version TEXT NOT NULL,
+                courses_count INTEGER NOT NULL,
+                assessments_count INTEGER NOT NULL
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS courses (
+                id SERIAL PRIMARY KEY,
+                canonical_course_key TEXT NOT NULL UNIQUE,
+                course_code TEXT NOT NULL,
+                course_title TEXT NOT NULL
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS participant_course_attempts (
+                id SERIAL PRIMARY KEY,
+                participant_id INTEGER NOT NULL,
+                course_id INTEGER NOT NULL,
+                term_code TEXT NOT NULL,
+                term_label TEXT NOT NULL,
+                section TEXT,
+                status TEXT NOT NULL,
+                current_grade REAL,
+                final_grade REAL,
+                comparison_grade REAL,
+                components_available INTEGER NOT NULL DEFAULT 0
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS participant_assessments (
+                id SERIAL PRIMARY KEY,
+                course_attempt_id INTEGER NOT NULL,
+                canonical_assessment_key TEXT NOT NULL,
+                assessment_name TEXT NOT NULL,
+                weight REAL NOT NULL,
+                grade REAL,
+                grade_text TEXT NOT NULL,
+                must_pass INTEGER NOT NULL,
+                order_index INTEGER NOT NULL
+            )
+            """,
+        ]
+        with self._connect() as connection:
+            for stmt in statements:
+                connection.execute(stmt)
 
     def sync_claim_invites(self, invites: dict[str, str]) -> None:
         with self._connect() as connection:
             if invites:
-                placeholders = ", ".join("?" for _ in invites)
+                placeholders = ", ".join("%s" for _ in invites)
                 connection.execute(
                     f"DELETE FROM claim_invites WHERE claimed_at IS NULL AND display_name NOT IN ({placeholders})",
                     tuple(invites),
@@ -106,7 +113,7 @@ class ComparisonSqliteStore:
                 connection.execute(
                     """
                     INSERT INTO claim_invites (display_name, claim_code_hash, claimed_at, participant_id)
-                    VALUES (?, ?, NULL, NULL)
+                    VALUES (%s, %s, NULL, NULL)
                     ON CONFLICT(display_name) DO UPDATE SET claim_code_hash = excluded.claim_code_hash
                     WHERE claim_invites.claimed_at IS NULL
                     """,
@@ -118,23 +125,23 @@ class ComparisonSqliteStore:
         claim_code_hash = _hash_token(claim_code)
         sync_token_hash = _hash_token(sync_token)
         with self._connect() as connection:
-            connection.execute("BEGIN IMMEDIATE")
             invite = connection.execute(
-                "SELECT id, claimed_at FROM claim_invites WHERE display_name = ? AND claim_code_hash = ?",
+                "SELECT id, claimed_at FROM claim_invites WHERE display_name = %s AND claim_code_hash = %s",
                 (display_name, claim_code_hash),
             ).fetchone()
             if invite is None or invite["claimed_at"] is not None:
                 raise PermissionError("claim_invite_invalid")
             try:
                 cursor = connection.execute(
-                    "INSERT INTO participants (display_name, sync_token_hash, claimed_at) VALUES (?, ?, datetime('now'))",
+                    "INSERT INTO participants (display_name, sync_token_hash, claimed_at) VALUES (%s, %s, NOW()) RETURNING id",
                     (display_name, sync_token_hash),
                 )
-            except sqlite3.IntegrityError as error:
+            except psycopg.errors.UniqueViolation as error:
                 raise PermissionError("claim_invite_invalid") from error
+            participant_id = cursor.fetchone()["id"]
             connection.execute(
-                "UPDATE claim_invites SET claimed_at = datetime('now'), participant_id = ? WHERE id = ?",
-                (int(cursor.lastrowid), int(invite["id"])),
+                "UPDATE claim_invites SET claimed_at = NOW(), participant_id = %s WHERE id = %s",
+                (participant_id, invite["id"]),
             )
         return sync_token
 
@@ -155,28 +162,27 @@ class ComparisonSqliteStore:
             courses=courses,
         )
         with self._connect() as connection:
-            connection.execute("BEGIN IMMEDIATE")
             invite = connection.execute(
-                "SELECT id, claimed_at FROM claim_invites WHERE display_name = ? AND claim_code_hash = ?",
+                "SELECT id, claimed_at FROM claim_invites WHERE display_name = %s AND claim_code_hash = %s",
                 (display_name, claim_code_hash),
             ).fetchone()
             if invite is None or invite["claimed_at"] is not None:
                 raise PermissionError("claim_invite_invalid")
             try:
                 cursor = connection.execute(
-                    "INSERT INTO participants (display_name, sync_token_hash, claimed_at) VALUES (?, ?, datetime('now'))",
+                    "INSERT INTO participants (display_name, sync_token_hash, claimed_at) VALUES (%s, %s, NOW()) RETURNING id",
                     (display_name, sync_token_hash),
                 )
-            except sqlite3.IntegrityError as error:
+            except psycopg.errors.UniqueViolation as error:
                 raise PermissionError("claim_invite_invalid") from error
-            participant_id = int(cursor.lastrowid)
+            participant_id = cursor.fetchone()["id"]
             connection.execute(
-                "UPDATE claim_invites SET claimed_at = datetime('now'), participant_id = ? WHERE id = ?",
-                (participant_id, int(invite["id"])),
+                "UPDATE claim_invites SET claimed_at = NOW(), participant_id = %s WHERE id = %s",
+                (participant_id, invite["id"]),
             )
             self._replace_snapshot(connection, participant_id, payload)
             row = connection.execute(
-                "SELECT latest_synced_at FROM participants WHERE id = ?",
+                "SELECT latest_synced_at FROM participants WHERE id = %s",
                 (participant_id,),
             ).fetchone()
         return ComparisonIdentity(
@@ -190,7 +196,7 @@ class ComparisonSqliteStore:
     def _participant_id_for_token(self, display_name: str, sync_token: str) -> int:
         with self._connect() as connection:
             row = connection.execute(
-                "SELECT id FROM participants WHERE display_name = ? AND sync_token_hash = ?",
+                "SELECT id FROM participants WHERE display_name = %s AND sync_token_hash = %s",
                 (display_name, _hash_token(sync_token)),
             ).fetchone()
         if row is None:
@@ -200,7 +206,7 @@ class ComparisonSqliteStore:
     def load_identity(self, display_name: str, sync_token: str) -> ComparisonIdentity:
         with self._connect() as connection:
             row = connection.execute(
-                "SELECT display_name, latest_synced_at FROM participants WHERE display_name = ? AND sync_token_hash = ?",
+                "SELECT display_name, latest_synced_at FROM participants WHERE display_name = %s AND sync_token_hash = %s",
                 (display_name, _hash_token(sync_token)),
             ).fetchone()
         if row is None:
@@ -227,21 +233,21 @@ class ComparisonSqliteStore:
 
     def _replace_snapshot(
         self,
-        connection: sqlite3.Connection,
+        connection: psycopg.Connection,
         participant_id: int,
         payload: ComparisonSyncPayload,
     ) -> None:
         attempt_ids = connection.execute(
-            "SELECT id FROM participant_course_attempts WHERE participant_id = ?",
+            "SELECT id FROM participant_course_attempts WHERE participant_id = %s",
             (participant_id,),
         ).fetchall()
         for attempt_row in attempt_ids:
             connection.execute(
-                "DELETE FROM participant_assessments WHERE course_attempt_id = ?",
-                (int(attempt_row["id"]),),
+                "DELETE FROM participant_assessments WHERE course_attempt_id = %s",
+                (attempt_row["id"],),
             )
         connection.execute(
-            "DELETE FROM participant_course_attempts WHERE participant_id = ?",
+            "DELETE FROM participant_course_attempts WHERE participant_id = %s",
             (participant_id,),
         )
 
@@ -250,7 +256,7 @@ class ComparisonSqliteStore:
             connection.execute(
                 """
                 INSERT INTO courses (canonical_course_key, course_code, course_title)
-                VALUES (?, ?, ?)
+                VALUES (%s, %s, %s)
                 ON CONFLICT(canonical_course_key) DO UPDATE SET
                     course_code = excluded.course_code,
                     course_title = excluded.course_title
@@ -258,18 +264,19 @@ class ComparisonSqliteStore:
                 (course.canonical_course_key, course.course_code, course.course_title),
             )
             course_row = connection.execute(
-                "SELECT id FROM courses WHERE canonical_course_key = ?",
+                "SELECT id FROM courses WHERE canonical_course_key = %s",
                 (course.canonical_course_key,),
             ).fetchone()
             attempt_cursor = connection.execute(
                 """
                 INSERT INTO participant_course_attempts (
                     participant_id, course_id, term_code, term_label, section, status, current_grade, final_grade, comparison_grade, components_available
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
                 """,
                 (
                     participant_id,
-                    int(course_row["id"]),
+                    course_row["id"],
                     course.term_code,
                     course.term_label,
                     course.section,
@@ -280,14 +287,14 @@ class ComparisonSqliteStore:
                     1 if course.assessments else 0,
                 ),
             )
-            course_attempt_id = int(attempt_cursor.lastrowid)
+            course_attempt_id = attempt_cursor.fetchone()["id"]
             for assessment in course.assessments:
                 assessments_count += 1
                 connection.execute(
                     """
                     INSERT INTO participant_assessments (
                         course_attempt_id, canonical_assessment_key, assessment_name, weight, grade, grade_text, must_pass, order_index
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
                         course_attempt_id,
@@ -302,11 +309,11 @@ class ComparisonSqliteStore:
                 )
 
         connection.execute(
-            "UPDATE participants SET latest_synced_at = datetime('now') WHERE id = ?",
+            "UPDATE participants SET latest_synced_at = NOW() WHERE id = %s",
             (participant_id,),
         )
         connection.execute(
-            "INSERT INTO sync_runs (participant_id, received_at, status, payload_version, courses_count, assessments_count) VALUES (?, datetime('now'), 'ok', 'v1', ?, ?)",
+            "INSERT INTO sync_runs (participant_id, received_at, status, payload_version, courses_count, assessments_count) VALUES (%s, NOW(), 'ok', 'v1', %s, %s)",
             (participant_id, len(payload.courses), assessments_count),
         )
 
@@ -332,4 +339,4 @@ class ComparisonSqliteStore:
                 ORDER BY participants.display_name, participant_course_attempts.term_code DESC
                 """
             ).fetchall()
-        return [dict(row) for row in rows]
+        return list(rows)

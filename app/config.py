@@ -7,7 +7,7 @@ import os
 class Settings:
     host: str
     port: int
-    sqlite_path: Path
+    database_url: str
     invites_path: Path
 
     @classmethod
@@ -15,9 +15,7 @@ class Settings:
         return cls(
             host="0.0.0.0",
             port=int(os.getenv("PORT", "8000")),
-            sqlite_path=Path(
-                os.getenv("COMPARISON_SQLITE_PATH", "data/comparison.sqlite3")
-            ),
+            database_url=os.getenv("DATABASE_URL", ""),
             invites_path=Path(
                 os.getenv(
                     "COMPARISON_INVITES_PATH", "data/comparison_claim_invites.json"

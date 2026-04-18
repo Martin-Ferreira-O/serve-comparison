@@ -13,7 +13,6 @@
     }
   ],
   "env": {
-    "COMPARISON_INVITES_PATH": "data/comparison_claim_invites.json",
-    "COMPARISON_SQLITE_PATH": "/tmp/comparison.sqlite3"
+    "COMPARISON_INVITES_PATH": "data/comparison_claim_invites.json"
   }
 }

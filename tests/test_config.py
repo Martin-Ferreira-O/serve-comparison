@@ -4,30 +4,27 @@ from pathlib import Path
 from app.config import Settings
 
 
-def test_settings_loads_fly_style_env(monkeypatch, tmp_path):
-    sqlite_path = tmp_path / "data" / "comparison.sqlite3"
-    invites_path = tmp_path / "data" / "invites.json"
+def test_settings_loads_database_url_from_env(monkeypatch):
     monkeypatch.setenv("PORT", "8080")
-    monkeypatch.setenv("COMPARISON_SQLITE_PATH", str(sqlite_path))
-    monkeypatch.setenv("COMPARISON_INVITES_PATH", str(invites_path))
+    monkeypatch.setenv("DATABASE_URL", "postgresql://user:pass@host/db")
+    monkeypatch.setenv("COMPARISON_INVITES_PATH", "/data/invites.json")
 
     settings = Settings.load()
 
     assert settings.host == "0.0.0.0"
     assert settings.port == 8080
-    assert settings.sqlite_path == sqlite_path
-    assert settings.invites_path == invites_path
+    assert settings.database_url == "postgresql://user:pass@host/db"
+    assert settings.invites_path == Path("/data/invites.json")
 
 
-def test_settings_defaults_port_and_paths(monkeypatch, tmp_path):
+def test_settings_defaults_port_and_paths(monkeypatch):
     monkeypatch.delenv("PORT", raising=False)
-    monkeypatch.delenv("COMPARISON_SQLITE_PATH", raising=False)
+    monkeypatch.delenv("DATABASE_URL", raising=False)
     monkeypatch.delenv("COMPARISON_INVITES_PATH", raising=False)
-    monkeypatch.chdir(tmp_path)
 
     settings = Settings.load()
 
     assert settings.host == "0.0.0.0"
     assert settings.port == 8000
-    assert settings.sqlite_path == Path("data/comparison.sqlite3")
+    assert settings.database_url == ""
     assert settings.invites_path == Path("data/comparison_claim_invites.json")
