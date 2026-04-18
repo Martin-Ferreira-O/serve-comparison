@@ -9,15 +9,16 @@ pip install -e .
 uvicorn app.main:create_app --factory --reload
 ```
 
-## Deploy to Fly
+## Deploy to Vercel
 
 ```bash
-fly launch --no-deploy
-fly volumes create comparison_data --size 1
-fly deploy
+vercel          # preview deploy
+vercel --prod   # production deploy
 ```
 
-Before the first real sync, operators must create and populate `COMPARISON_INVITES_PATH` on the mounted volume. By default the app expects `data/comparison_claim_invites.json`, so the deployed service needs that file to exist as a flat `{display_name: claim_code}` mapping before anyone can claim a participant.
+Before the first real sync, operators must populate `COMPARISON_INVITES_PATH` with a flat `{display_name: claim_code}` mapping. Configure this via an environment variable in the Vercel dashboard pointing to a persistent storage location (e.g. Vercel KV, external DB, or a pre-seeded file).
+
+> **Note**: Vercel uses a serverless (ephemeral) filesystem. The SQLite database and invite file will **not persist between requests** in the default setup. For production use, configure an external database such as [Vercel Postgres](https://vercel.com/docs/storage/vercel-postgres) or [Neon](https://neon.tech).
 
 Each `claim_code` is tied to one preassigned visible name. The first sync must submit the exact visible name paired with that invite code or the hosted service will reject the claim.
 
@@ -31,6 +32,6 @@ Example invite file:
 
 Operational notes:
 
-- Create `COMPARISON_INVITES_PATH` before opening the service to users.
-- Keep the file on persistent storage together with the SQLite database.
+- Set `COMPARISON_INVITES_PATH` and `COMPARISON_SQLITE_PATH` in the Vercel project environment variables.
+- For persistent data, migrate to an external database before opening the service to users.
 - Share each invite code together with its exact assigned visible name so the first local sync can claim the right identity.

@@ -13,3 +13,6 @@ data/*
 # Vercel
 .vercel
 .env*.local
+
+# Claude
+.claude
