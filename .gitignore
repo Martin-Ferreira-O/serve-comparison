@@ -8,6 +8,7 @@ data/*
 *.sqlite3-wal
 .env
 .venv
+.pytest_cache
 
 # Vercel
 .vercel
@@ -15,3 +16,4 @@ data/*
 
 # Claude
 .claude
+.playwright-mcp

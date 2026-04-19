@@ -1,481 +1,1121 @@
-:root {
-  --comparison-bg: rgba(6, 12, 24, 0.82);
-  --comparison-card: rgba(15, 23, 42, 0.88);
-  --comparison-card-strong: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(8, 18, 36, 0.96));
-  --comparison-line: rgba(96, 165, 250, 0.22);
-  --comparison-text: #eff6ff;
-  --comparison-muted: #a8bbd6;
-  --comparison-accent: #3b82f6;
-  --comparison-accent-strong: #1e40af;
-  --comparison-amber: #f59e0b;
-  --comparison-success: #22c55e;
-}
+/* ─── Arena Layout ──────────────────────────────────────────── */
 
-.comparison-page {
-  max-width: 1440px;
-}
-
-.comparison-page,
-.comparison-page h1,
-.comparison-page h2,
-.comparison-page h3,
-.comparison-page strong,
-.comparison-page button,
-.comparison-page input,
-.comparison-page select {
-  color: var(--comparison-text);
-}
-
-.comparison-page code,
-.comparison-page .comparison-summary-label,
-.comparison-page .comparison-tab,
-.comparison-page th,
-.comparison-page dt,
-.comparison-page .comparison-ranking-stats,
-.comparison-page .comparison-ranking-meta span,
-.comparison-page .comparison-field span,
-.comparison-page .comparison-field small,
-.comparison-page .comparison-feedback,
-.comparison-page .comparison-inline-empty,
-.comparison-page .comparison-note-block p,
-.comparison-page .comparison-checklist,
-.comparison-page .comparison-section-heading p {
-  color: var(--comparison-muted);
-}
-
-.comparison-shell-card,
-.comparison-empty-state {
-  border: 1px solid var(--comparison-line);
-  background: var(--comparison-card-strong);
-  border-radius: 1.25rem;
-  box-shadow: 0 18px 48px rgba(2, 6, 23, 0.38);
-}
-
-.comparison-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
-  gap: 1rem;
-  padding: 1.25rem;
-  margin-bottom: 1rem;
-}
-
-.comparison-lead {
-  max-width: 62rem;
-  line-height: 1.65;
-}
-
-.comparison-summary-grid,
-.comparison-grid,
-.comparison-panel-grid,
-.comparison-history-grid,
-.comparison-form-grid,
-.comparison-filter-grid,
-.comparison-stats-grid {
-  display: grid;
-  gap: 0.9rem;
-}
-
-.comparison-hero-actions {
+.arena-page {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 1.1rem;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
-.comparison-summary-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+/* ─── Arena Header ──────────────────────────────────────────── */
+
+.arena-header {
+  position: relative;
+  overflow: hidden;
+  padding: 3rem 1.5rem 2rem;
 }
 
-.comparison-summary-card {
-  padding: 1rem;
-  border-radius: 1rem;
-  border: 1px solid rgba(96, 165, 250, 0.18);
-  background: rgba(8, 18, 36, 0.78);
+.arena-header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(79, 142, 247, 0.2), transparent),
+    radial-gradient(ellipse 40% 30% at 80% 50%, rgba(245, 183, 48, 0.06), transparent);
+  pointer-events: none;
 }
 
-.comparison-summary-card strong {
-  display: block;
-  margin: 0.45rem 0 0.3rem;
-  font-size: 1.2rem;
-}
-
-.comparison-summary-card small {
-  display: block;
-  line-height: 1.55;
-}
-
-.comparison-summary-card.accent {
-  border-color: rgba(59, 130, 246, 0.42);
-  background: linear-gradient(160deg, rgba(30, 64, 175, 0.26), rgba(15, 23, 42, 0.88));
-}
-
-.comparison-summary-card.muted {
-  border-color: rgba(148, 163, 184, 0.2);
-}
-
-.comparison-summary-label {
-  display: inline-block;
-  font-family: "Fira Code", monospace;
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.comparison-section-heading h2,
-.comparison-section-heading h3,
-.comparison-panel-header h2 {
-  margin: 0;
-}
-
-.comparison-section-heading p,
-.comparison-panel-header p {
-  margin: 0.35rem 0 0;
-  line-height: 1.6;
-}
-
-.comparison-tab-bar {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 0.65rem;
-  margin-top: 1rem;
-}
-
-.comparison-tab {
-  min-height: 2.6rem;
-  padding: 0.7rem 1rem;
-  border: 1px solid rgba(59, 130, 246, 0.22);
-  border-radius: 999px;
-  background: rgba(7, 15, 30, 0.66);
-  font-family: "Fira Code", monospace;
-  font-size: 0.92rem;
-}
-
-.comparison-tab.is-active {
-  border-color: rgba(245, 158, 11, 0.6);
-  background: rgba(30, 64, 175, 0.28);
-  color: #ffffff;
-}
-
-.comparison-tab-panels {
-  margin-top: 1rem;
-}
-
-.comparison-tab-panel {
-  display: block;
-}
-
-.comparison-panel-header {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  align-items: end;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-}
-
-.comparison-panel-header.simple {
-  grid-template-columns: 1fr;
-}
-
-.comparison-panel-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.comparison-history-grid {
-  grid-template-columns: minmax(0, 1.6fr) minmax(18rem, 0.8fr);
-}
-
-.comparison-ranking-card,
-.comparison-stats-card,
-.comparison-empty-state,
-.comparison-side-panel {
-  padding: 1rem;
-}
-
-.comparison-filter-form {
-  min-width: min(100%, 28rem);
-}
-
-.comparison-filter-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-items: end;
-}
-
-.comparison-filter-grid.single-select {
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.comparison-field {
+.arena-header-inner {
+  position: relative;
+  max-width: 1280px;
+  margin: 0 auto;
   display: grid;
-  gap: 0.45rem;
-}
-
-.comparison-field.compact span {
-  font-size: 0.82rem;
-}
-
-.comparison-field input,
-.comparison-field select {
-  width: 100%;
-  min-height: 2.85rem;
-  padding: 0.75rem 0.85rem;
-  border: 1px solid rgba(96, 165, 250, 0.22);
-  border-radius: 0.9rem;
-  background: var(--comparison-bg);
-  font: inherit;
-}
-
-.comparison-field select {
-  appearance: none;
-}
-
-.comparison-field.is-disabled {
-  opacity: 0.72;
-}
-
-.comparison-form {
-  display: grid;
-  gap: 1rem;
-}
-
-.comparison-form-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.comparison-form-actions {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.comparison-feedback {
-  min-height: 3rem;
-  padding: 0.85rem 0.95rem;
-  border-radius: 0.95rem;
-  border: 1px solid rgba(96, 165, 250, 0.18);
-  background: rgba(9, 17, 31, 0.72);
-  line-height: 1.5;
-}
-
-.comparison-feedback.is-success {
-  border-color: rgba(34, 197, 94, 0.35);
-  color: #dcfce7;
-}
-
-.comparison-feedback.is-error {
-  border-color: rgba(249, 115, 22, 0.35);
-  color: #fed7aa;
-}
-
-.comparison-feedback.is-pending {
-  border-color: rgba(245, 158, 11, 0.35);
-  color: #fde68a;
-}
-
-.comparison-ranking-list {
-  display: grid;
-  gap: 0.8rem;
-}
-
-.comparison-ranking-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
-  gap: 0.8rem;
+  grid-template-columns: 1fr auto;
+  gap: 2rem;
   align-items: center;
-  padding: 0.85rem 0.95rem;
-  border: 1px solid rgba(96, 165, 250, 0.14);
-  border-radius: 0.95rem;
-  background: rgba(8, 18, 36, 0.72);
 }
 
-.comparison-ranking-row.is-highlighted,
-.comparison-table tbody tr.is-highlighted {
-  border-color: rgba(245, 158, 11, 0.48);
-  background: rgba(245, 158, 11, 0.08);
+.arena-title {
+  margin: 0;
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 800;
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: #ffffff;
+  text-shadow: 0 0 60px rgba(79, 142, 247, 0.3);
 }
 
-.comparison-ranking-meta strong,
-.comparison-ranking-meta span {
+.arena-subtitle {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.arena-stat-strip {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.arena-stat {
+  padding: 0.85rem 1.1rem;
+  background: rgba(22, 36, 64, 0.6);
+  border: 1px solid var(--line-strong);
+  border-radius: 0.9rem;
+  min-width: 120px;
+  backdrop-filter: blur(8px);
+}
+
+.arena-stat-label {
+  display: block;
+  font-family: "Fira Code", monospace;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--dim);
+  margin-bottom: 0.35rem;
+}
+
+.arena-stat-value {
+  display: block;
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 700;
+  font-size: 1.35rem;
+  color: var(--text);
+  line-height: 1;
+}
+
+.arena-stat-value.is-gold {
+  color: var(--rank-gold);
+}
+
+.arena-stat-sub {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--dim);
+  margin-top: 0.2rem;
+  font-family: "Fira Code", monospace;
+}
+
+/* ─── Scoreboard Nav ────────────────────────────────────────── */
+
+.scoreboard-nav {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: rgba(7, 17, 30, 0.88);
+  backdrop-filter: blur(20px) saturate(1.4);
+  border-bottom: 1px solid var(--line);
+  transition: box-shadow 200ms ease;
+}
+
+.scoreboard-nav.is-scrolled {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+.scoreboard-nav-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  padding: 0 1.5rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.scoreboard-nav-inner::-webkit-scrollbar {
+  display: none;
+}
+
+.scoreboard-tab {
+  flex-shrink: 0;
+  padding: 1rem 1.25rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--dim);
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    color 180ms ease,
+    border-color 180ms ease;
+  white-space: nowrap;
+  margin-bottom: -1px;
+}
+
+.scoreboard-tab:hover {
+  color: var(--text);
+}
+
+.scoreboard-tab.is-active {
+  color: #ffffff;
+  border-bottom-color: var(--rank-gold);
+}
+
+/* ─── Arena Main & Panels ───────────────────────────────────── */
+
+.arena-main {
+  flex: 1;
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 2rem 1.5rem 4rem;
+}
+
+.arena-panel {
   display: block;
 }
 
-.comparison-ranking-meta span,
-.comparison-ranking-stats {
+/* ─── Panel Anatomy ─────────────────────────────────────────── */
+
+.panel-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+
+.panel-heading h2 {
+  margin: 0;
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 700;
+  font-size: 1.6rem;
+  letter-spacing: 0.02em;
+}
+
+.panel-heading p {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
   font-size: 0.9rem;
 }
 
-.comparison-ranking-stats {
+/* ─── Season Filter Form ────────────────────────────────────── */
+
+.season-form {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.season-form label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-family: "Fira Code", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.season-form select {
+  appearance: none;
+  background: var(--bg-card-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: 0.65rem;
+  color: var(--text);
+  font-family: "Inter", sans-serif;
+  font-size: 0.9rem;
+  padding: 0.5rem 2rem 0.5rem 0.85rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238fa3be' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  cursor: pointer;
+  min-width: 200px;
+}
+
+.season-form select:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* ─── Arena Card ────────────────────────────────────────────── */
+
+.arena-card {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 1.15rem;
+  padding: 1.25rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.arena-card-heading {
+  margin: 0 0 1.25rem;
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.arena-card-heading::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+/* ─── Podium ────────────────────────────────────────────────── */
+
+.podium-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.podium {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.65rem;
+  max-width: 640px;
+  width: 100%;
+}
+
+.podium-card {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1.25rem 0.75rem 0;
+  border-radius: 1rem 1rem 0 0;
+  border: 1px solid var(--line);
+  border-bottom: none;
+  background: var(--bg-card);
+  gap: 0.5rem;
+  transition: transform 220ms ease;
+}
+
+.podium-card:hover {
+  transform: translateY(-3px);
+}
+
+.podium-card.rank-1 {
+  min-height: 220px;
+  border-color: rgba(245, 183, 48, 0.35);
+  background: linear-gradient(180deg, rgba(245, 183, 48, 0.07) 0%, var(--bg-card) 60%);
+}
+
+.podium-card.rank-2 {
+  min-height: 175px;
+  border-color: rgba(154, 175, 200, 0.25);
+  background: linear-gradient(180deg, rgba(154, 175, 200, 0.05) 0%, var(--bg-card) 60%);
+}
+
+.podium-card.rank-3 {
+  min-height: 150px;
+  border-color: rgba(192, 122, 74, 0.25);
+  background: linear-gradient(180deg, rgba(192, 122, 74, 0.05) 0%, var(--bg-card) 60%);
+}
+
+.podium-card.rank-1::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    110deg,
+    transparent 30%,
+    rgba(245, 183, 48, 0.1) 50%,
+    transparent 70%
+  );
+  background-size: 300% 100%;
+  animation: podiumShimmer 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes podiumShimmer {
+  0%,
+  100% {
+    background-position: 200% 0;
+  }
+  50% {
+    background-position: -200% 0;
+  }
+}
+
+.podium-rank-badge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.rank-1 .podium-rank-badge {
+  font-size: 2.2rem;
+  color: var(--rank-gold);
+  text-shadow: 0 0 20px rgba(245, 183, 48, 0.5);
+}
+
+.rank-2 .podium-rank-badge {
+  font-size: 1.8rem;
+  color: var(--rank-silver);
+}
+
+.rank-3 .podium-rank-badge {
+  font-size: 1.6rem;
+  color: var(--rank-bronze);
+}
+
+.podium-avatar {
+  margin-top: 0.25rem;
+}
+
+.podium-score {
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 800;
+  font-size: 2.4rem;
+  line-height: 1;
+  color: var(--text);
+}
+
+.rank-1 .podium-score {
+  color: var(--rank-gold);
+  text-shadow: 0 0 30px rgba(245, 183, 48, 0.35);
+}
+
+.podium-name {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--muted);
+  padding-bottom: 1rem;
+}
+
+.podium-gap {
+  font-family: "Fira Code", monospace;
+  font-size: 0.72rem;
+  color: var(--negative);
+  padding-bottom: 0.25rem;
+}
+
+/* ─── Avatar ────────────────────────────────────────────────── */
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Inter", sans-serif;
+  font-weight: 700;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+  background: var(--bg-card-raised);
+  color: var(--muted);
+  border: 2px solid var(--line-strong);
+}
+
+.podium-avatar .avatar {
+  width: 52px;
+  height: 52px;
+  font-size: 1rem;
+}
+
+.av-0 { background: rgba(59, 130, 246, 0.2); color: #93c5fd; border-color: rgba(59, 130, 246, 0.35); }
+.av-1 { background: rgba(124, 58, 237, 0.2); color: #c4b5fd; border-color: rgba(124, 58, 237, 0.35); }
+.av-2 { background: rgba(5, 150, 105, 0.2); color: #6ee7b7; border-color: rgba(5, 150, 105, 0.35); }
+.av-3 { background: rgba(180, 83, 9, 0.2); color: #fcd34d; border-color: rgba(180, 83, 9, 0.35); }
+.av-4 { background: rgba(190, 24, 93, 0.2); color: #f9a8d4; border-color: rgba(190, 24, 93, 0.35); }
+.av-5 { background: rgba(14, 116, 144, 0.2); color: #67e8f9; border-color: rgba(14, 116, 144, 0.35); }
+.av-6 { background: rgba(185, 28, 28, 0.2); color: #fca5a5; border-color: rgba(185, 28, 28, 0.35); }
+.av-7 { background: rgba(194, 65, 12, 0.2); color: #fed7aa; border-color: rgba(194, 65, 12, 0.35); }
+
+.rank-1 .podium-avatar .avatar {
+  border-color: rgba(245, 183, 48, 0.5);
+  box-shadow: 0 0 16px rgba(245, 183, 48, 0.2);
+}
+
+/* ─── Rank List ─────────────────────────────────────────────── */
+
+.rank-list {
   display: grid;
-  gap: 0.2rem;
-  text-align: right;
+  gap: 0.55rem;
+}
+
+.rank-row {
+  display: grid;
+  grid-template-columns: 2rem 40px 1fr auto auto;
+  gap: 0.9rem;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 0.85rem;
+  animation: rowSlideIn 0.4s ease-out both;
+  animation-delay: calc(var(--row-index, 0) * 55ms);
+}
+
+.rank-row.is-highlighted {
+  border-color: rgba(79, 142, 247, 0.35);
+  background: rgba(79, 142, 247, 0.06);
+}
+
+@keyframes rowSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.rank-position {
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--dim);
+  text-align: center;
+}
+
+.rank-info {
+  min-width: 0;
+}
+
+.rank-name {
+  display: block;
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rank-sub {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--dim);
   font-family: "Fira Code", monospace;
 }
 
-.comparison-bar-track {
+.rank-grade-inline {
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.rank-bar-col {
+  display: flex;
+  align-items: center;
+  min-width: 80px;
+  max-width: 160px;
   width: 100%;
-  height: 0.72rem;
+}
+
+.rank-bar-track {
+  width: 100%;
+  height: 5px;
   border-radius: 999px;
-  background: rgba(30, 41, 59, 0.95);
+  background: var(--bg-card-raised);
   overflow: hidden;
 }
 
-.comparison-bar-fill {
-  display: block;
+.rank-bar-fill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--comparison-accent-strong), var(--comparison-accent));
+  background: linear-gradient(90deg, #1e40af, #4f8ef7);
+  width: 0%;
+  transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.comparison-bar-fill.accent {
-  background: linear-gradient(90deg, var(--comparison-amber), #fbbf24);
+.rank-bar-fill.is-leader {
+  background: linear-gradient(90deg, #b45309, var(--rank-gold));
 }
 
-.comparison-inline-empty {
-  margin: 0;
-  padding: 1rem 0;
+.rank-stats {
+  display: grid;
+  gap: 0.15rem;
+  text-align: right;
+  font-family: "Fira Code", monospace;
+  font-size: 0.82rem;
 }
 
-.comparison-empty-state {
-  margin-top: 1rem;
+.rank-score {
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--text);
+  line-height: 1;
 }
 
-.comparison-empty-state h2 {
-  margin-top: 0;
+.rank-gap {
+  color: var(--negative);
 }
 
-.comparison-table-wrap {
+.rank-gap.is-leader {
+  color: var(--positive);
+}
+
+.rank-pts {
+  color: var(--dim);
+}
+
+/* ─── Course Filter ─────────────────────────────────────────── */
+
+.course-filter-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 0.75rem;
+  align-items: end;
+  margin-bottom: 1.5rem;
+}
+
+/* ─── Semester Courses & Assessment Grid ────────────────────── */
+
+.sem-courses-section {
+  margin-top: 2.5rem;
+}
+
+.sem-courses-heading {
+  margin: 0 0 1rem;
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.sem-courses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.sem-course-card {
+  padding: 1rem 1.1rem;
+}
+
+.sem-course-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text);
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sem-course-rows {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.sem-course-row {
+  display: grid;
+  grid-template-columns: 1.2rem 28px 1fr auto auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: 0.55rem;
+}
+
+.sem-course-row.is-leader {
+  background: rgba(245, 183, 48, 0.06);
+}
+
+.sem-course-row.is-highlighted {
+  background: var(--accent-glow);
+}
+
+.sem-course-pos {
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--dim);
+  text-align: center;
+}
+
+.sem-avatar {
+  width: 28px;
+  height: 28px;
+  font-size: 0.65rem;
+  flex-shrink: 0;
+}
+
+.sem-course-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sem-course-score {
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--text);
+  text-align: right;
+}
+
+.sem-course-row.is-leader .sem-course-score {
+  color: var(--rank-gold);
+}
+
+.sem-course-gap {
+  font-family: "Fira Code", monospace;
+  font-size: 0.68rem;
+  color: var(--negative);
+  text-align: right;
+  min-width: 2.5rem;
+}
+
+.sem-course-gap.is-leader {
+  color: var(--positive);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ─── Course Panel ──────────────────────────────────────────── */
+
+.filter-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.filter-field span {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-family: "Fira Code", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.filter-field select {
+  appearance: none;
+  background: var(--bg-card-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: 0.65rem;
+  color: var(--text);
+  font-family: "Inter", sans-serif;
+  font-size: 0.9rem;
+  padding: 0.55rem 2rem 0.55rem 0.85rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238fa3be' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  cursor: pointer;
+  width: 100%;
+}
+
+/* ─── Historical Panel ──────────────────────────────────────── */
+
+.history-layout {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 1.25rem;
+}
+
+.history-table-wrap {
   overflow-x: auto;
+  border-radius: 0.85rem;
 }
 
-.comparison-table {
+.history-table {
   width: 100%;
   border-collapse: collapse;
 }
 
-.comparison-table th,
-.comparison-table td {
-  padding: 0.85rem 0.75rem;
+.history-table th {
   text-align: left;
-  border-top: 1px solid rgba(96, 165, 250, 0.14);
-}
-
-.comparison-table thead th {
-  border-top: 0;
-}
-
-.comparison-stats-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.comparison-stats-grid div,
-.comparison-note-block {
-  padding: 0.9rem;
-  border: 1px solid rgba(96, 165, 250, 0.14);
-  border-radius: 0.95rem;
-  background: rgba(8, 18, 36, 0.72);
-}
-
-.comparison-stats-grid dt {
+  color: var(--dim);
   font-family: "Fira Code", monospace;
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  padding: 0 0.75rem 0.85rem;
+  white-space: nowrap;
 }
 
-.comparison-stats-grid dd {
-  margin: 0.45rem 0 0;
-  font-size: 1rem;
-  line-height: 1.5;
+.history-table td {
+  padding: 0.85rem 0.75rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.92rem;
 }
 
-.comparison-sync-grid {
-  grid-template-columns: minmax(0, 1.4fr) minmax(18rem, 0.8fr);
+.history-table tbody tr:first-child td {
+  background: var(--rank-gold-glow);
 }
 
-.comparison-checklist {
+.history-table tbody tr.is-highlighted td {
+  background: var(--accent-glow);
+}
+
+.history-table .pos-cell {
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--dim);
+}
+
+.history-table .score-cell {
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.history-table .gap-cell {
+  font-family: "Fira Code", monospace;
+  font-size: 0.82rem;
+  color: var(--negative);
+}
+
+.history-table tbody tr:first-child .gap-cell {
+  color: var(--positive);
+}
+
+.history-table .mono-cell {
+  font-family: "Fira Code", monospace;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+/* ─── Stats Card ────────────────────────────────────────────── */
+
+.stats-panel {
+  display: grid;
+  gap: 0.6rem;
+  align-content: start;
+}
+
+.stats-item {
+  padding: 0.85rem 0.95rem;
+  background: var(--bg-card-raised);
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+}
+
+.stats-item dt {
+  font-family: "Fira Code", monospace;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--dim);
+  margin-bottom: 0.3rem;
+}
+
+.stats-item dd {
   margin: 0;
-  padding-left: 1.15rem;
-  line-height: 1.7;
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--text);
 }
 
-.comparison-note-block p {
-  margin: 0.45rem 0 0;
+.stats-item.is-gold dd {
+  color: var(--rank-gold);
 }
 
-[hidden] {
-  display: none !important;
+/* ─── Head-to-Head Panel ────────────────────────────────────── */
+
+.h2h-container {
+  max-width: 760px;
+  margin: 0 auto;
 }
+
+.h2h-intro {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin-bottom: 2rem;
+}
+
+.h2h-pickers {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1rem;
+  align-items: end;
+  margin-bottom: 2rem;
+}
+
+.h2h-picker-group {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.h2h-picker-group label {
+  font-family: "Fira Code", monospace;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--dim);
+}
+
+.h2h-picker-group select {
+  appearance: none;
+  background: var(--bg-card-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: 0.75rem;
+  color: var(--text);
+  font-family: "Inter", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 0.7rem 2rem 0.7rem 1rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238fa3be' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  cursor: pointer;
+  width: 100%;
+}
+
+.vs-badge {
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 800;
+  font-size: 1.75rem;
+  color: var(--rank-gold);
+  text-align: center;
+  padding-bottom: 0.5rem;
+  text-shadow: 0 0 20px rgba(245, 183, 48, 0.3);
+}
+
+.h2h-prompt {
+  text-align: center;
+  color: var(--dim);
+  font-size: 0.9rem;
+  padding: 3rem 0;
+  font-family: "Fira Code", monospace;
+}
+
+.h2h-result {
+  background: var(--bg-card);
+  border: 1px solid var(--line);
+  border-radius: 1.15rem;
+  overflow: hidden;
+}
+
+.h2h-result-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 1.5rem;
+  background: linear-gradient(180deg, var(--bg-card-raised) 0%, var(--bg-card) 100%);
+  border-bottom: 1px solid var(--line);
+}
+
+.h2h-player-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.h2h-player-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.h2h-player-info.is-winner .h2h-player-name {
+  color: var(--rank-gold);
+}
+
+.h2h-vs-divider {
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 800;
+  font-size: 1.4rem;
+  color: var(--dim);
+  text-align: center;
+}
+
+.h2h-stat-rows {
+  padding: 0.25rem 0;
+}
+
+.h2h-stat-row {
+  display: grid;
+  grid-template-columns: 1fr 3rem 1fr;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid var(--line);
+  gap: 0.5rem;
+}
+
+.h2h-stat-row:last-child {
+  border-bottom: none;
+}
+
+.h2h-stat-label {
+  grid-column: 2;
+  font-family: "Fira Code", monospace;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dim);
+  text-align: center;
+}
+
+.h2h-val-a {
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 700;
+  font-size: 1.2rem;
+  text-align: right;
+  color: var(--muted);
+}
+
+.h2h-val-b {
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 700;
+  font-size: 1.2rem;
+  text-align: left;
+  color: var(--muted);
+}
+
+.h2h-val-a.is-winner,
+.h2h-val-b.is-winner {
+  color: var(--positive);
+}
+
+/* ─── Empty States ──────────────────────────────────────────── */
+
+.arena-empty {
+  text-align: center;
+  padding: 4rem 1rem;
+  color: var(--dim);
+}
+
+.arena-empty p {
+  margin: 0;
+  font-size: 0.95rem;
+  font-family: "Fira Code", monospace;
+}
+
+/* ─── Responsive ────────────────────────────────────────────── */
 
 @media (max-width: 1024px) {
-  .comparison-hero,
-  .comparison-panel-header,
-  .comparison-sync-grid,
-  .comparison-panel-grid,
-  .comparison-history-grid {
+  .arena-header-inner {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .arena-stat-strip {
+    justify-content: flex-start;
+  }
+
+  .history-layout {
     grid-template-columns: 1fr;
   }
 
-  .comparison-filter-form {
-    min-width: 0;
-  }
-
-  .comparison-filter-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .comparison-filter-grid.single-select {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .comparison-summary-grid,
-  .comparison-form-grid,
-  .comparison-stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .course-panel-grid {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 768px) {
-  .comparison-summary-grid,
-  .comparison-form-grid,
-  .comparison-filter-grid,
-  .comparison-filter-grid.single-select,
-  .comparison-stats-grid,
-  .comparison-ranking-row {
+  .arena-header {
+    padding: 2rem 1.25rem 1.5rem;
+  }
+
+  .arena-main {
+    padding: 1.5rem 1rem 3rem;
+  }
+
+  .podium {
+    gap: 0.4rem;
+  }
+
+  .podium-card.rank-1 {
+    min-height: 180px;
+  }
+
+  .podium-card.rank-2 {
+    min-height: 145px;
+  }
+
+  .podium-card.rank-3 {
+    min-height: 125px;
+  }
+
+  .rank-row {
+    grid-template-columns: 2rem 36px 1fr auto;
+  }
+
+  .rank-bar-col {
+    display: none;
+  }
+
+  .course-filter-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .sem-courses-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+
+  .h2h-pickers {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .vs-badge {
+    padding: 0;
+    font-size: 1.25rem;
+  }
+
+  .h2h-result-header {
+    grid-template-columns: 1fr auto 1fr;
+  }
+
+  .h2h-stat-row {
+    padding: 0.65rem 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .arena-stat-strip {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .arena-stat {
+    min-width: 0;
+  }
+
+  .scoreboard-tab {
+    padding: 0.85rem 1rem;
+    font-size: 0.88rem;
+  }
+
+  .podium-card {
+    padding: 1rem 0.5rem 0;
+  }
+
+  .podium-score {
+    font-size: 1.8rem;
+  }
+
+  .podium-avatar .avatar {
+    width: 42px;
+    height: 42px;
+  }
+
+  .course-filter-row {
     grid-template-columns: 1fr;
   }
 
-  .comparison-form-actions,
-  .comparison-hero-actions {
-    flex-direction: column;
-  }
-
-  .comparison-ranking-stats {
-    text-align: left;
-  }
-}
-
-@media (max-width: 375px) {
-  .comparison-hero,
-  .comparison-ranking-card,
-  .comparison-stats-card,
-  .comparison-side-panel,
-  .comparison-empty-state {
-    padding: 0.85rem;
-  }
-
-  .comparison-tab {
-    width: 100%;
-    justify-content: center;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .comparison-tab,
-  .comparison-ranking-row,
-  .comparison-field input,
-  .comparison-field select,
-  .comparison-feedback,
-  .comparison-bar-fill {
-    transition: none;
+  .sem-courses-grid {
+    grid-template-columns: 1fr;
   }
 }

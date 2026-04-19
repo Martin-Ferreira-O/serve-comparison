@@ -21,7 +21,7 @@ from app.services.comparison_dashboard import build_comparison_dashboard_context
 TEMPLATES_DIR = Path(__file__).with_name("templates")
 STATIC_DIR = Path(__file__).with_name("static")
 
-ALLOWED_ACTIVE_TABS = {"course", "semester", "historical"}
+ALLOWED_ACTIVE_TABS = {"course", "semester", "historical", "h2h"}
 
 
 def _static_version() -> str:
@@ -36,7 +36,7 @@ def _static_version() -> str:
 def _active_tab(value: str | None) -> str:
     if value in ALLOWED_ACTIVE_TABS:
         return value
-    return "course"
+    return "semester"
 
 
 class ComparisonAssessmentRequest(BaseModel):

@@ -342,7 +342,11 @@ class ComparisonSqliteStore:
                     courses.course_title,
                     participant_course_attempts.term_code,
                     participant_course_attempts.term_label,
-                    participant_course_attempts.comparison_grade,
+                    COALESCE(
+                        participant_course_attempts.comparison_grade,
+                        participant_course_attempts.final_grade,
+                        participant_course_attempts.current_grade
+                    ) AS comparison_grade,
                     participant_assessments.assessment_name,
                     participant_assessments.grade AS assessment_grade,
                     participant_assessments.order_index AS assessment_order_index

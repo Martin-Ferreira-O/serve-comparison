@@ -1,303 +1,543 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dashboard de comparacion</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v={{ static_version }}" />
-    <link rel="stylesheet" href="{{ url_for('static', path='/comparison.css') }}?v={{ static_version }}" />
-  </head>
-  <body>
-    <main class="page comparison-page">
-      <section class="comparison-hero comparison-shell-card">
-        <div>
-          <p class="eyebrow">UA Grades Comparison</p>
-          <h1>Dashboard de comparacion academica</h1>
-          <p class="comparison-lead">
-            Ranking comparativo por ramo, semestre e historico con foco en brechas, lideres y seleccion activa.
-          </p>
-        </div>
-        <div class="comparison-summary-grid">
-          <article class="comparison-summary-card accent">
-            <span class="comparison-summary-label">Participantes</span>
-            <strong>{{ summary.participants }}</strong>
-            <small>Total sincronizado en esta base local de comparacion.</small>
-          </article>
-          <article class="comparison-summary-card">
-            <span class="comparison-summary-label">Promedio grupo</span>
-            <strong>{{ summary.group_average if summary.group_average is not none else "-" }}</strong>
-            <small>Promedio historico calculado sobre snapshots comparables.</small>
-          </article>
-          <article class="comparison-summary-card">
-            <span class="comparison-summary-label">Lider historico</span>
-            <strong>{{ summary.leaders[0] if summary.leaders else "-" }}</strong>
-            <small>{{ summary.leader_points }} puntos de podio acumulados en la vista activa.</small>
-          </article>
-          <article class="comparison-summary-card muted">
-            <span class="comparison-summary-label">Participante resaltado</span>
-            <strong>{{ summary.selected_participant.display_name if summary.selected_participant else "Sin seleccion" }}</strong>
-            <small>{% if summary.selected_participant %}Brecha actual {{ summary.selected_participant.gap_to_leader }} frente al lider historico.{% else %}Abre con ?participant=Nombre para fijar tu fila en las tablas.{% endif %}</small>
-          </article>
-        </div>
-      </section>
 
-      <section class="comparison-shell-card section-card">
-        <div class="comparison-section-heading compact">
-          <h2>Vista comparativa</h2>
-          <p>Usa las pestañas para alternar entre el rendimiento por ramo, semestre e historico.</p>
-        </div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UA Grades · Scoreboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v={{ static_version }}" />
+  <link rel="stylesheet" href="{{ url_for('static', path='/comparison.css') }}?v={{ static_version }}" />
+</head>
 
-        <div class="comparison-tab-bar" data-tabs data-active-tab="{{ active_tab }}" role="tablist" aria-label="Comparativas principales">
-          <button class="comparison-tab {% if active_tab == 'course' %}is-active{% endif %}" id="comparison-tab-course" type="button" role="tab" tabindex="{% if active_tab == 'course' %}0{% else %}-1{% endif %}" data-tab-target="course" aria-controls="comparison-panel-course" aria-selected="{{ 'true' if active_tab == 'course' else 'false' }}">Ramo</button>
-          <button class="comparison-tab {% if active_tab == 'semester' %}is-active{% endif %}" id="comparison-tab-semester" type="button" role="tab" tabindex="{% if active_tab == 'semester' %}0{% else %}-1{% endif %}" data-tab-target="semester" aria-controls="comparison-panel-semester" aria-selected="{{ 'true' if active_tab == 'semester' else 'false' }}">Semestre</button>
-          <button class="comparison-tab {% if active_tab == 'historical' %}is-active{% endif %}" id="comparison-tab-historical" type="button" role="tab" tabindex="{% if active_tab == 'historical' %}0{% else %}-1{% endif %}" data-tab-target="historical" aria-controls="comparison-panel-historical" aria-selected="{{ 'true' if active_tab == 'historical' else 'false' }}">Historico</button>
-        </div>
+<body class="arena-page">
+  <div id="nav-sentinel"></div>
 
-        {% if not summary.participants %}
-        <section class="comparison-empty-state comparison-shell-card">
-          <h2>Aun no hay datos sincronizados</h2>
-          <p>
-            Cuando exista al menos un snapshot remoto veras rankings por ramo, semestre y acumulado historico.
-          </p>
-        </section>
+  {# ── Compute semester leader for header ── #}
+  {% set sem_leader = tabs.semester.ranking[0] if tabs.semester.ranking else none %}
+
+  {# ── Compute selected participant rank ── #}
+  {% set ns = namespace(selected_rank='-') %}
+  {% if summary.selected_participant %}
+  {% for hrow in tabs.historical.ranking %}
+  {% if hrow.display_name == summary.selected_participant.display_name %}
+  {% set ns.selected_rank = loop.index %}
+  {% endif %}
+  {% endfor %}
+  {% endif %}
+
+  {# ── Find current semester label ── #}
+  {% set ns2 = namespace(sem_label='') %}
+  {% for opt in tabs.semester.options %}
+  {% if opt.value == tabs.semester.selected %}
+  {% set ns2.sem_label = opt.label %}
+  {% endif %}
+  {% endfor %}
+
+  {# ── Arena Header ── #}
+  <header class="arena-header">
+    <div class="arena-header-inner">
+      <div>
+        <p class="eyebrow">UA Grades · Temporada activa</p>
+        <h1 class="arena-title">Scoreboard</h1>
+        {% if ns2.sem_label %}
+        <p class="arena-subtitle">{{ ns2.sem_label }}</p>
         {% endif %}
+      </div>
 
-        <div class="comparison-tab-panels">
-          <section class="comparison-tab-panel {% if active_tab == 'course' %}is-active{% endif %}" id="comparison-panel-course" role="tabpanel" aria-labelledby="comparison-tab-course" data-tab-panel="course" {% if active_tab != 'course' %}hidden{% endif %}>
-            <div class="comparison-panel-header">
-              <div>
-                <h2>Ramo</h2>
-                <p>Compara promedio final por curso y desciende al ranking de una evaluacion especifica.</p>
-              </div>
-              <form class="comparison-filter-form" method="get" action="/">
-                {% if summary.selected_participant %}
-                <input type="hidden" name="participant" value="{{ summary.selected_participant.display_name }}" />
-                {% endif %}
-                <input type="hidden" name="active_tab" value="{{ active_tab }}" data-active-tab-input />
-                <input type="hidden" name="selected_semester" value="{{ tabs.semester.selected or '' }}" />
-                <div class="comparison-filter-grid">
-                  <label class="comparison-field compact">
-                    <span>Ramo</span>
-                    <select name="selected_course">
-                      {% for option in tabs.course.options %}
-                      <option value="{{ option.value }}" {% if option.value == tabs.course.selected %}selected{% endif %}>{{ option.label }}</option>
-                      {% endfor %}
-                    </select>
-                  </label>
-                  <label class="comparison-field compact">
-                    <span>Evaluacion</span>
-                    <select name="selected_assessment">
-                      {% for option in tabs.course.assessment_options %}
-                      <option value="{{ option.value }}" {% if option.value == tabs.course.selected_assessment %}selected{% endif %}>{{ option.label }}</option>
-                      {% endfor %}
-                    </select>
-                  </label>
-                  <button class="secondary-action" type="submit">Aplicar</button>
-                </div>
-              </form>
-            </div>
-
-            <div class="comparison-grid comparison-panel-grid">
-              <article class="comparison-shell-card comparison-ranking-card">
-                <div class="comparison-section-heading compact">
-                  <h3>Ranking del ramo</h3>
-                  <p>{{ tabs.course.selected or "Sin ramo seleccionado" }}</p>
-                </div>
-                {% if tabs.course.ranking %}
-                <div class="comparison-ranking-list">
-                  {% for row in tabs.course.ranking %}
-                  <div class="comparison-ranking-row {% if summary.selected_participant and row.display_name == summary.selected_participant.display_name %}is-highlighted{% endif %}">
-                    <div class="comparison-ranking-meta">
-                      <strong>{{ loop.index }}. {{ row.display_name }}</strong>
-                      <span>{{ row.average if row.average is not none else "-" }} promedio</span>
-                    </div>
-                    <div class="comparison-bar-track" aria-hidden="true">
-                      <span class="comparison-bar-fill" style="width: {{ (row.average or 0) * 14.2857 }}%"></span>
-                    </div>
-                    <div class="comparison-ranking-stats">
-                      <span>Gap {{ row.gap_to_leader }}</span>
-                      <span>{{ row.points }} pts</span>
-                    </div>
-                  </div>
-                  {% endfor %}
-                </div>
-                {% else %}
-                <p class="comparison-inline-empty">No hay resultados para el ramo seleccionado.</p>
-                {% endif %}
-              </article>
-
-              <article class="comparison-shell-card comparison-ranking-card">
-                <div class="comparison-section-heading compact">
-                  <h3>Ranking de evaluacion</h3>
-                  <p>{{ tabs.course.selected_assessment or "Sin evaluacion disponible" }}</p>
-                </div>
-                {% if tabs.course.assessment_ranking %}
-                <div class="comparison-ranking-list dense">
-                  {% for row in tabs.course.assessment_ranking %}
-                  <div class="comparison-ranking-row {% if summary.selected_participant and row.display_name == summary.selected_participant.display_name %}is-highlighted{% endif %}">
-                    <div class="comparison-ranking-meta">
-                      <strong>{{ loop.index }}. {{ row.display_name }}</strong>
-                      <span>{{ row.average if row.average is not none else "-" }} en evaluacion</span>
-                    </div>
-                    <div class="comparison-bar-track" aria-hidden="true">
-                      <span class="comparison-bar-fill accent" style="width: {{ (row.average or 0) * 14.2857 }}%"></span>
-                    </div>
-                    <div class="comparison-ranking-stats">
-                      <span>Wins {{ row.wins }}</span>
-                      <span>Podios {{ row.podiums }}</span>
-                    </div>
-                  </div>
-                  {% endfor %}
-                </div>
-                {% else %}
-                <p class="comparison-inline-empty">No hay evaluaciones comparables para este ramo.</p>
-                {% endif %}
-              </article>
-            </div>
-          </section>
-
-          <section class="comparison-tab-panel {% if active_tab == 'semester' %}is-active{% endif %}" id="comparison-panel-semester" role="tabpanel" aria-labelledby="comparison-tab-semester" data-tab-panel="semester" {% if active_tab != 'semester' %}hidden{% endif %}>
-            <div class="comparison-panel-header">
-              <div>
-                <h2>Semestre</h2>
-                <p>Concentra el ranking agregado del periodo seleccionado para detectar saltos o caidas entre cohortes.</p>
-              </div>
-              <form class="comparison-filter-form" method="get" action="/">
-                {% if summary.selected_participant %}
-                <input type="hidden" name="participant" value="{{ summary.selected_participant.display_name }}" />
-                {% endif %}
-                <input type="hidden" name="active_tab" value="{{ active_tab }}" data-active-tab-input />
-                <input type="hidden" name="selected_course" value="{{ tabs.course.selected or '' }}" />
-                <input type="hidden" name="selected_assessment" value="{{ tabs.course.selected_assessment or '' }}" />
-                <div class="comparison-filter-grid single-select">
-                  <label class="comparison-field compact">
-                    <span>Semestre</span>
-                    <select name="selected_semester">
-                      {% for option in tabs.semester.options %}
-                      <option value="{{ option.value }}" {% if option.value == tabs.semester.selected %}selected{% endif %}>{{ option.label }}</option>
-                      {% endfor %}
-                    </select>
-                  </label>
-                  <button class="secondary-action" type="submit">Aplicar</button>
-                </div>
-              </form>
-            </div>
-
-            <article class="comparison-shell-card comparison-ranking-card wide">
-              <div class="comparison-section-heading compact">
-                <h3>Ranking del semestre</h3>
-                <p>{{ tabs.semester.selected or "Sin semestre seleccionado" }}</p>
-              </div>
-              {% if tabs.semester.ranking %}
-              <div class="comparison-ranking-list">
-                {% for row in tabs.semester.ranking %}
-                <div class="comparison-ranking-row {% if summary.selected_participant and row.display_name == summary.selected_participant.display_name %}is-highlighted{% endif %}">
-                  <div class="comparison-ranking-meta">
-                    <strong>{{ loop.index }}. {{ row.display_name }}</strong>
-                    <span>{{ row.average if row.average is not none else "-" }} promedio semestral</span>
-                  </div>
-                  <div class="comparison-bar-track" aria-hidden="true">
-                    <span class="comparison-bar-fill" style="width: {{ (row.average or 0) * 14.2857 }}%"></span>
-                  </div>
-                  <div class="comparison-ranking-stats">
-                    <span>Gap {{ row.gap_to_leader }}</span>
-                    <span>{{ row.points }} pts</span>
-                  </div>
-                </div>
-                {% endfor %}
-              </div>
-              {% else %}
-              <p class="comparison-inline-empty">No hay resultados para el semestre seleccionado.</p>
-              {% endif %}
-            </article>
-          </section>
-
-          <section class="comparison-tab-panel {% if active_tab == 'historical' %}is-active{% endif %}" id="comparison-panel-historical" role="tabpanel" aria-labelledby="comparison-tab-historical" data-tab-panel="historical" {% if active_tab != 'historical' %}hidden{% endif %}>
-            <div class="comparison-panel-header simple">
-              <div>
-                <h2>Historico</h2>
-                <p>Vista acumulada de desempeno general con foco en podios, victorias y distancia frente al lider.</p>
-              </div>
-            </div>
-
-            <div class="comparison-grid comparison-history-grid">
-              <article class="comparison-shell-card comparison-ranking-card wide">
-                <div class="comparison-section-heading compact">
-                  <h3>Ranking historico</h3>
-                  <p>Promedio consolidado de todos los intentos sincronizados.</p>
-                </div>
-                {% if tabs.historical.ranking %}
-                <div class="comparison-table-wrap">
-                  <table class="comparison-table">
-                    <thead>
-                      <tr>
-                        <th>Posicion</th>
-                        <th>Participante</th>
-                        <th>Promedio</th>
-                        <th>Gap lider</th>
-                        <th>Wins</th>
-                        <th>Podios</th>
-                        <th>Puntos</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {% for row in tabs.historical.ranking %}
-                      <tr class="{% if summary.selected_participant and row.display_name == summary.selected_participant.display_name %}is-highlighted{% endif %}">
-                        <td>{{ loop.index }}</td>
-                        <td>{{ row.display_name }}</td>
-                        <td>{{ row.average if row.average is not none else "-" }}</td>
-                        <td>{{ row.gap_to_leader }}</td>
-                        <td>{{ row.wins }}</td>
-                        <td>{{ row.podiums }}</td>
-                        <td>{{ row.points }}</td>
-                      </tr>
-                      {% endfor %}
-                    </tbody>
-                  </table>
-                </div>
-                {% else %}
-                <p class="comparison-inline-empty">Aun no hay datos sincronizados</p>
-                {% endif %}
-              </article>
-
-              <article class="comparison-shell-card comparison-stats-card">
-                <div class="comparison-section-heading compact">
-                  <h3>Resumen estadistico</h3>
-                  <p>Equivalente compacto a un resumen de distribucion.</p>
-                </div>
-                <dl class="comparison-stats-grid">
-                  <div>
-                    <dt>Lideres</dt>
-                    <dd>{{ summary.leaders | join(', ') if summary.leaders else "-" }}</dd>
-                  </div>
-                  <div>
-                    <dt>Participantes</dt>
-                    <dd>{{ summary.participants }}</dd>
-                  </div>
-                  <div>
-                    <dt>Promedio grupo</dt>
-                    <dd>{{ summary.group_average if summary.group_average is not none else "-" }}</dd>
-                  </div>
-                  <div>
-                    <dt>Puntos del lider</dt>
-                    <dd>{{ summary.leader_points }}</dd>
-                  </div>
-                  <div>
-                    <dt>Seleccion activa</dt>
-                    <dd>{{ summary.selected_participant.display_name if summary.selected_participant else "Sin participante" }}</dd>
-                  </div>
-                  <div>
-                    <dt>Brecha activa</dt>
-                    <dd>{{ summary.selected_participant.gap_to_leader if summary.selected_participant else "-" }}</dd>
-                  </div>
-                </dl>
-              </article>
-            </div>
-          </section>
+      <div class="arena-stat-strip">
+        <div class="arena-stat">
+          <span class="arena-stat-label">Participantes</span>
+          <span class="arena-stat-value">{{ summary.participants }}</span>
+          <span class="arena-stat-sub">en competencia</span>
         </div>
-      </section>
-    </main>
+        <div class="arena-stat">
+          <span class="arena-stat-label">Promedio grupo</span>
+          <span class="arena-stat-value">{{ "%.2f"|format(summary.group_average) if summary.group_average is not none
+            else "—" }}</span>
+          <span class="arena-stat-sub">histórico</span>
+        </div>
+        <div class="arena-stat">
+          <span class="arena-stat-label">Líder semestre</span>
+          <span class="arena-stat-value is-gold">{{ sem_leader.display_name if sem_leader else "—" }}</span>
+          <span class="arena-stat-sub">{{ "%.2f"|format(sem_leader.average) if sem_leader and sem_leader.average is not
+            none else "sem. actual" }}</span>
+        </div>
+        <div class="arena-stat">
+          <span class="arena-stat-label">Tu posición</span>
+          {% if summary.selected_participant %}
+          <span class="arena-stat-value">#{{ ns.selected_rank }}</span>
+          <span class="arena-stat-sub">{{ summary.selected_participant.display_name }}</span>
+          {% else %}
+          <span class="arena-stat-value" style="color: var(--dim)">—</span>
+          <span class="arena-stat-sub">sin selección</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </header>
 
-    <script src="{{ url_for('static', path='/comparison.js') }}?v={{ static_version }}"></script>
-  </body>
+  {# ── Scoreboard Nav (sticky) ── #}
+  <nav class="scoreboard-nav" data-tabs data-active-tab="{{ active_tab }}" role="tablist"
+    aria-label="Vistas de comparación">
+    <div class="scoreboard-nav-inner">
+      <button class="scoreboard-tab {% if active_tab == 'semester' %}is-active{% endif %}" id="tab-semester"
+        type="button" role="tab" tabindex="{% if active_tab == 'semester' %}0{% else %}-1{% endif %}"
+        data-tab-target="semester" aria-controls="panel-semester"
+        aria-selected="{{ 'true' if active_tab == 'semester' else 'false' }}">Semestre Actual</button>
+      <button class="scoreboard-tab {% if active_tab == 'course' %}is-active{% endif %}" id="tab-course" type="button"
+        role="tab" tabindex="{% if active_tab == 'course' %}0{% else %}-1{% endif %}" data-tab-target="course"
+        aria-controls="panel-course" aria-selected="{{ 'true' if active_tab == 'course' else 'false' }}">Por
+        Ramo</button>
+      <button class="scoreboard-tab {% if active_tab == 'historical' %}is-active{% endif %}" id="tab-historical"
+        type="button" role="tab" tabindex="{% if active_tab == 'historical' %}0{% else %}-1{% endif %}"
+        data-tab-target="historical" aria-controls="panel-historical"
+        aria-selected="{{ 'true' if active_tab == 'historical' else 'false' }}">Histórico</button>
+      <button class="scoreboard-tab {% if active_tab == 'h2h' %}is-active{% endif %}" id="tab-h2h" type="button"
+        role="tab" tabindex="{% if active_tab == 'h2h' %}0{% else %}-1{% endif %}" data-tab-target="h2h"
+        aria-controls="panel-h2h" aria-selected="{{ 'true' if active_tab == 'h2h' else 'false' }}">Cara a Cara</button>
+    </div>
+  </nav>
+
+  {# ── Main Panels ── #}
+  <main class="arena-main">
+
+    {# ══ Semester Panel ══ #}
+    <section class="arena-panel {% if active_tab == 'semester' %}is-active{% endif %}" id="panel-semester"
+      role="tabpanel" aria-labelledby="tab-semester" data-tab-panel="semester" {% if active_tab !='semester' %}hidden{%
+      endif %}>
+      <div class="panel-top">
+        <div class="panel-heading">
+          <h2>Semestre Actual</h2>
+          <p>Ranking comparativo del periodo seleccionado.</p>
+        </div>
+        <form class="season-form" method="get" action="/">
+          {% if summary.selected_participant %}
+          <input type="hidden" name="participant" value="{{ summary.selected_participant.display_name }}" />
+          {% endif %}
+          <input type="hidden" name="active_tab" value="{{ active_tab }}" data-active-tab-input />
+          <input type="hidden" name="selected_course" value="{{ tabs.course.selected or '' }}" />
+          <input type="hidden" name="selected_assessment" value="{{ tabs.course.selected_assessment or '' }}" />
+          <label>
+            <span class="sr-only">Semestre</span>
+            <select name="selected_semester" data-auto-submit>
+              {% for option in tabs.semester.options %}
+              <option value="{{ option.value }}" {% if option.value==tabs.semester.selected %}selected{% endif %}>{{
+                option.label }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <button class="sr-only" type="submit">Aplicar</button>
+        </form>
+      </div>
+
+      {% if not tabs.semester.ranking %}
+      <div class="arena-empty">
+        <p>No hay datos para el semestre seleccionado.</p>
+      </div>
+      {% else %}
+      {% set n = tabs.semester.ranking | length %}
+      {% set r1 = tabs.semester.ranking[0] %}
+      {% set r2 = tabs.semester.ranking[1] if n >= 2 else none %}
+      {% set r3 = tabs.semester.ranking[2] if n >= 3 else none %}
+
+      {# Podium — top 3 #}
+      {% if n >= 2 %}
+      <div class="podium-wrap">
+        <div class="podium">
+          {# 2nd place — left #}
+          {% set p = r2 %}
+          {% set pparts = p.display_name.split() %}
+          {% set pinits = (pparts[0][0] + (pparts[1][0] if pparts|length > 1 else ''))|upper %}
+          <div class="podium-card rank-2">
+            <div class="podium-rank-badge">2</div>
+            <div class="podium-avatar">
+              <div class="avatar" data-pname="{{ p.display_name }}">{{ pinits }}</div>
+            </div>
+            <div class="podium-score">{{ "%.1f"|format(p.average) if p.average is not none else "—" }}</div>
+            <div class="podium-name">{{ p.display_name }}</div>
+            {% if p.gap_to_leader and p.gap_to_leader != '0.00' %}<div class="podium-gap">{{ p.gap_to_leader }}</div>{%
+            endif %}
+          </div>
+
+          {# 1st place — center #}
+          {% set p = r1 %}
+          {% set pparts = p.display_name.split() %}
+          {% set pinits = (pparts[0][0] + (pparts[1][0] if pparts|length > 1 else ''))|upper %}
+          <div class="podium-card rank-1">
+            <div class="podium-rank-badge">1</div>
+            <div class="podium-avatar">
+              <div class="avatar" data-pname="{{ p.display_name }}">{{ pinits }}</div>
+            </div>
+            <div class="podium-score">{{ "%.1f"|format(p.average) if p.average is not none else "—" }}</div>
+            <div class="podium-name">{{ p.display_name }}</div>
+          </div>
+
+          {# 3rd place — right #}
+          {% if r3 %}
+          {% set p = r3 %}
+          {% set pparts = p.display_name.split() %}
+          {% set pinits = (pparts[0][0] + (pparts[1][0] if pparts|length > 1 else ''))|upper %}
+          <div class="podium-card rank-3">
+            <div class="podium-rank-badge">3</div>
+            <div class="podium-avatar">
+              <div class="avatar" data-pname="{{ p.display_name }}">{{ pinits }}</div>
+            </div>
+            <div class="podium-score">{{ "%.1f"|format(p.average) if p.average is not none else "—" }}</div>
+            <div class="podium-name">{{ p.display_name }}</div>
+            {% if p.gap_to_leader and p.gap_to_leader != '0.00' %}<div class="podium-gap">{{ p.gap_to_leader }}</div>{%
+            endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% else %}
+      {# Solo hero — only 1 person #}
+      <div class="podium-wrap">
+        <div class="podium" style="justify-content: center; max-width: 240px;">
+          {% set p = r1 %}
+          {% set pparts = p.display_name.split() %}
+          {% set pinits = (pparts[0][0] + (pparts[1][0] if pparts|length > 1 else ''))|upper %}
+          <div class="podium-card rank-1" style="max-width: 220px;">
+            <div class="podium-rank-badge">1</div>
+            <div class="podium-avatar">
+              <div class="avatar" data-pname="{{ p.display_name }}">{{ pinits }}</div>
+            </div>
+            <div class="podium-score">{{ "%.1f"|format(p.average) if p.average is not none else "—" }}</div>
+            <div class="podium-name">{{ p.display_name }}</div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      {# Rank rows — 4th and beyond #}
+      {% if n > 3 %}
+      <div class="rank-list">
+        {% for row in tabs.semester.ranking[3:] %}
+        {% set rparts = row.display_name.split() %}
+        {% set rinits = (rparts[0][0] + (rparts[1][0] if rparts|length > 1 else ''))|upper %}
+        <div
+          class="rank-row {% if summary.selected_participant and row.display_name == summary.selected_participant.display_name %}is-highlighted{% endif %}"
+          style="--row-index: {{ loop.index0 }}">
+          <div class="rank-position">{{ loop.index + 3 }}</div>
+          <div class="avatar" data-pname="{{ row.display_name }}">{{ rinits }}</div>
+          <div class="rank-info">
+            <strong class="rank-name">{{ row.display_name }}</strong>
+            <span class="rank-sub"><span class="rank-grade-inline">{{ "%.2f"|format(row.average) if row.average is not
+                none else "—" }}</span> · {{ row.points }} pts · {{ row.wins }}W {{ row.podiums }}P</span>
+          </div>
+          <div class="rank-bar-col">
+            <div class="rank-bar-track">
+              <div class="rank-bar-fill" data-width="{{ ((row.average or 0) / 7.0 * 100) | round(1) }}%"></div>
+            </div>
+          </div>
+          <div class="rank-stats">
+            <span class="rank-gap {% if loop.first %}is-leader{% endif %}">{% if loop.first %}líder{% elif
+              row.gap_to_leader %}-{{ "%.2f"|format(row.gap_to_leader) }}{% else %}—{% endif %}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {# ── Ramos del semestre ── #}
+      {% if tabs.semester.courses %}
+      <div class="sem-courses-section">
+        <h3 class="sem-courses-heading">Notas por ramo</h3>
+        <div class="sem-courses-grid">
+          {% for course in tabs.semester.courses %}
+          <div class="arena-card sem-course-card">
+            <div class="sem-course-title">{{ course.course_title }}</div>
+            <div class="sem-course-rows">
+              {% for row in course.ranking %}
+              {% set rparts = row.display_name.split() %}
+              {% set rinits = (rparts[0][0] + (rparts[1][0] if rparts|length > 1 else ''))|upper %}
+              <div
+                class="sem-course-row {% if loop.first %}is-leader{% endif %} {% if summary.selected_participant and row.display_name == summary.selected_participant.display_name %}is-highlighted{% endif %}">
+                <span class="sem-course-pos">{{ loop.index }}</span>
+                <span class="avatar sem-avatar" data-pname="{{ row.display_name }}">{{ rinits }}</span>
+                <span class="sem-course-name">{{ row.display_name }}</span>
+                <span class="sem-course-score">{{ "%.1f"|format(row.average) if row.average is not none else "Sin
+                  notas" }}</span>
+                {% if loop.first %}
+                <span class="sem-course-gap is-leader">líder</span>
+                {% elif row.gap_to_leader %}
+                <span class="sem-course-gap">-{{ "%.2f"|format(row.gap_to_leader) }}</span>
+                {% else %}
+                <span class="sem-course-gap" style="color: var(--dim)">—</span>
+                {% endif %}
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+      {% endif %}
+    </section>
+
+    {# ══ Course Panel ══ #}
+    <section class="arena-panel {% if active_tab == 'course' %}is-active{% endif %}" id="panel-course" role="tabpanel"
+      aria-labelledby="tab-course" data-tab-panel="course" {% if active_tab !='course' %}hidden{% endif %}>
+      <div class="panel-top">
+        <div class="panel-heading">
+          <h2>Por Ramo</h2>
+          <p>Ranking por curso y desglose de todas las evaluaciones.</p>
+        </div>
+      </div>
+
+      <form method="get" action="/">
+        {% if summary.selected_participant %}
+        <input type="hidden" name="participant" value="{{ summary.selected_participant.display_name }}" />
+        {% endif %}
+        <input type="hidden" name="active_tab" value="{{ active_tab }}" data-active-tab-input />
+        <div class="course-filter-row">
+          <div class="filter-field">
+            <span>Semestre</span>
+            <select name="selected_semester" data-auto-submit>
+              {% for option in tabs.semester.options %}
+              <option value="{{ option.value }}" {% if option.value==tabs.semester.selected %}selected{% endif %}>{{
+                option.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="filter-field">
+            <span>Ramo</span>
+            <select name="selected_course" data-auto-submit>
+              {% for option in tabs.course.options %}
+              <option value="{{ option.value }}" {% if option.value==tabs.course.selected %}selected{% endif %}>{{
+                option.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button class="secondary-action" type="submit">Aplicar</button>
+        </div>
+      </form>
+
+      {# Course ranking — full width #}
+      <div class="arena-card" style="margin-bottom: 1.5rem;">
+        <h3 class="arena-card-heading">Ranking General del Ramo</h3>
+        {% if tabs.course.ranking %}
+        <div class="rank-list">
+          {% for row in tabs.course.ranking %}
+          {% set rparts = row.display_name.split() %}
+          {% set rinits = (rparts[0][0] + (rparts[1][0] if rparts|length > 1 else ''))|upper %}
+          <div
+            class="rank-row {% if summary.selected_participant and row.display_name == summary.selected_participant.display_name %}is-highlighted{% endif %}"
+            style="--row-index: {{ loop.index0 }}">
+            <div class="rank-position">{{ loop.index }}</div>
+            <div class="avatar" data-pname="{{ row.display_name }}">{{ rinits }}</div>
+            <div class="rank-info">
+              <strong class="rank-name">{{ row.display_name }}</strong>
+              <span class="rank-sub"><span class="rank-grade-inline">{{ "%.2f"|format(row.average) if row.average is not
+                  none else "—" }}</span> · {{ row.wins }}W {{ row.podiums }}P · {{ row.points }} pts</span>
+            </div>
+            <div class="rank-bar-col">
+              <div class="rank-bar-track">
+                <div class="rank-bar-fill {% if loop.first %}is-leader{% endif %}"
+                  data-width="{{ ((row.average or 0) / 7.0 * 100) | round(1) }}%"></div>
+              </div>
+            </div>
+            <div class="rank-stats">
+              <span class="rank-gap {% if loop.first %}is-leader{% endif %}">{% if loop.first %}líder{% elif
+                row.gap_to_leader %}-{{ "%.2f"|format(row.gap_to_leader) }}{% else %}—{% endif %}</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="arena-empty">
+          <p>Sin resultados para el ramo y semestre seleccionados.</p>
+        </div>
+        {% endif %}
+      </div>
+
+      {# All assessments grid #}
+      {% if tabs.course.all_assessment_rankings %}
+      <h3 class="sem-courses-heading">Evaluaciones</h3>
+      <div class="sem-courses-grid">
+        {% for assessment in tabs.course.all_assessment_rankings %}
+        <div class="arena-card sem-course-card">
+          <div class="sem-course-title">{{ assessment.assessment_name }}</div>
+          <div class="sem-course-rows">
+            {% for row in assessment.ranking %}
+            {% set rparts = row.display_name.split() %}
+            {% set rinits = (rparts[0][0] + (rparts[1][0] if rparts|length > 1 else ''))|upper %}
+            <div
+              class="sem-course-row {% if loop.first %}is-leader{% endif %} {% if summary.selected_participant and row.display_name == summary.selected_participant.display_name %}is-highlighted{% endif %}">
+              <span class="sem-course-pos">{{ loop.index }}</span>
+              <span class="avatar sem-avatar" data-pname="{{ row.display_name }}">{{ rinits }}</span>
+              <span class="sem-course-name">{{ row.display_name }}</span>
+              <span class="sem-course-score">{{ "%.1f"|format(row.average) if row.average is not none else "—" }}</span>
+              {% if not loop.first and row.gap_to_leader %}
+              <span class="sem-course-gap">-{{ "%.2f"|format(row.gap_to_leader) }}</span>
+              {% else %}
+              <span class="sem-course-gap is-leader">lider</span>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </section>
+
+    {# ══ Historical Panel ══ #}
+    <section class="arena-panel {% if active_tab == 'historical' %}is-active{% endif %}" id="panel-historical"
+      role="tabpanel" aria-labelledby="tab-historical" data-tab-panel="historical" {% if active_tab !='historical'
+      %}hidden{% endif %}>
+      <div class="panel-top">
+        <div class="panel-heading">
+          <h2>Histórico</h2>
+          <p>Acumulado general: podios, victorias y distancia al líder.</p>
+        </div>
+      </div>
+
+      {% if tabs.historical.ranking %}
+      <div class="history-layout">
+        <div class="arena-card">
+          <div class="history-table-wrap">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>Pos</th>
+                  <th>Participante</th>
+                  <th>Promedio</th>
+                  <th>Gap líder</th>
+                  <th>Wins</th>
+                  <th>Podios</th>
+                  <th>Puntos</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in tabs.historical.ranking %}
+                <tr
+                  class="{% if summary.selected_participant and row.display_name == summary.selected_participant.display_name %}is-highlighted{% endif %}">
+                  <td class="pos-cell">{{ loop.index }}</td>
+                  <td>
+                    {% set rparts = row.display_name.split() %}
+                    {% set rinits = (rparts[0][0] + (rparts[1][0] if rparts|length > 1 else ''))|upper %}
+                    <span style="display: flex; align-items: center; gap: 0.6rem;">
+                      <span class="avatar" data-pname="{{ row.display_name }}"
+                        style="width: 28px; height: 28px; font-size: 0.65rem; flex-shrink: 0;">{{ rinits }}</span>
+                      {{ row.display_name }}
+                    </span>
+                  </td>
+                  <td class="score-cell">{{ "%.2f"|format(row.average) if row.average is not none else "—" }}</td>
+                  <td class="gap-cell">{{ row.gap_to_leader if row.gap_to_leader else '0.00' }}</td>
+                  <td class="mono-cell">{{ row.wins }}</td>
+                  <td class="mono-cell">{{ row.podiums }}</td>
+                  <td class="mono-cell">{{ row.points }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <dl class="stats-panel">
+          <div class="stats-item is-gold">
+            <dt>Líder histórico</dt>
+            <dd>{{ summary.leaders[0] if summary.leaders else "—" }}</dd>
+          </div>
+          <div class="stats-item">
+            <dt>Puntos del líder</dt>
+            <dd>{{ summary.leader_points }}</dd>
+          </div>
+          <div class="stats-item">
+            <dt>Promedio grupo</dt>
+            <dd>{{ "%.2f"|format(summary.group_average) if summary.group_average is not none else "—" }}</dd>
+          </div>
+          <div class="stats-item">
+            <dt>Participantes</dt>
+            <dd>{{ summary.participants }}</dd>
+          </div>
+          {% if summary.selected_participant %}
+          <div class="stats-item">
+            <dt>Tu selección</dt>
+            <dd>{{ summary.selected_participant.display_name }}</dd>
+          </div>
+          <div class="stats-item">
+            <dt>Tu brecha</dt>
+            <dd style="color: var(--negative)">{{ summary.selected_participant.gap_to_leader }}</dd>
+          </div>
+          {% endif %}
+        </dl>
+      </div>
+      {% else %}
+      <div class="arena-empty">
+        <p>Aún no hay datos sincronizados.</p>
+      </div>
+      {% endif %}
+    </section>
+
+    {# ══ Head-to-Head Panel ══ #}
+    <section class="arena-panel {% if active_tab == 'h2h' %}is-active{% endif %}" id="panel-h2h" role="tabpanel"
+      aria-labelledby="tab-h2h" data-tab-panel="h2h" {% if active_tab !='h2h' %}hidden{% endif %}>
+      <div class="panel-top">
+        <div class="panel-heading">
+          <h2>Cara a Cara</h2>
+          <p>Compara directamente a dos participantes en todas las métricas.</p>
+        </div>
+      </div>
+
+      <div class="h2h-container">
+        {% if tabs.historical.ranking | length >= 2 %}
+        <div class="h2h-pickers">
+          <div class="h2h-picker-group">
+            <label for="h2h-select-a">Jugador A</label>
+            <select id="h2h-select-a">
+              <option value="">— Seleccionar —</option>
+              {% for row in tabs.historical.ranking %}
+              <option value="{{ row.display_name }}">{{ row.display_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="vs-badge">VS</div>
+          <div class="h2h-picker-group">
+            <label for="h2h-select-b">Jugador B</label>
+            <select id="h2h-select-b">
+              <option value="">— Seleccionar —</option>
+              {% for row in tabs.historical.ranking %}
+              <option value="{{ row.display_name }}">{{ row.display_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div id="h2h-output" hidden>
+          <div class="h2h-result">
+            <div class="h2h-result-header">
+              <div class="h2h-player-info" id="h2h-player-a">
+                <div class="avatar" id="h2h-avatar-a" style="width: 48px; height: 48px; font-size: 0.9rem;"></div>
+                <span class="h2h-player-name" id="h2h-name-a"></span>
+              </div>
+              <div class="h2h-vs-divider">VS</div>
+              <div class="h2h-player-info" id="h2h-player-b">
+                <div class="avatar" id="h2h-avatar-b" style="width: 48px; height: 48px; font-size: 0.9rem;"></div>
+                <span class="h2h-player-name" id="h2h-name-b"></span>
+              </div>
+            </div>
+            <div class="h2h-stat-rows" id="h2h-stat-rows"></div>
+          </div>
+        </div>
+
+        <p class="h2h-prompt" id="h2h-prompt">Selecciona dos participantes para comenzar la comparación.</p>
+        {% else %}
+        <div class="arena-empty">
+          <p>Se necesitan al menos 2 participantes para comparar.</p>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+
+  </main>
+
+  {# ── JSON data island for H2H and avatar colors ── #}
+  <script type="application/json" id="ranking-data">{{ tabs.historical.ranking | tojson }}</script>
+
+  <script src="{{ url_for('static', path='/comparison.js') }}?v={{ static_version }}"></script>
+</body>
+
 </html>
