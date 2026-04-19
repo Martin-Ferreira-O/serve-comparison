@@ -1,4 +1,5 @@
 import os
+import re
 
 import psycopg
 import pytest
@@ -9,6 +10,7 @@ from app.models import (
     ComparisonSyncPayload,
 )
 from app.persistence.comparison_sqlite_store import ComparisonSqliteStore
+from app.scripts.invites import main as invites_main
 
 pytestmark = pytest.mark.skipif(
     not os.getenv("DATABASE_URL"),
@@ -84,6 +86,53 @@ def test_claim_requires_matching_preassigned_code(store):
     )
 
     assert issued_token
+
+
+def test_add_claim_invite_replaces_pending_code(store):
+    store.add_claim_invite("Martin A.", "claim-martin")
+    store.add_claim_invite("Martin A.", "claim-martin-2")
+
+    try:
+        store.claim_identity(display_name="Martin A.", claim_code="claim-martin")
+    except PermissionError as error:
+        assert str(error) == "claim_invite_invalid"
+    else:
+        raise AssertionError("Expected PermissionError")
+
+    issued_token = store.claim_identity(
+        display_name="Martin A.",
+        claim_code="claim-martin-2",
+    )
+
+    assert issued_token
+
+
+def test_add_claim_invite_rejects_claimed_identity(store):
+    store.add_claim_invite("Martin A.", "claim-martin")
+    store.claim_identity(display_name="Martin A.", claim_code="claim-martin")
+
+    try:
+        store.add_claim_invite("Martin A.", "another-code")
+    except PermissionError as error:
+        assert str(error) == "claim_invite_already_claimed"
+    else:
+        raise AssertionError("Expected PermissionError")
+
+
+def test_invite_script_adds_participant_pass(store, capsys):
+    exit_code = invites_main(["add", "Martin A."])
+
+    assert exit_code == 0
+
+    output = capsys.readouterr().out
+    pass_match = re.search(r"^Pass: (.+)$", output, re.MULTILINE)
+
+    assert "Participant: Martin A." in output
+    assert pass_match is not None
+    assert store.claim_identity(
+        display_name="Martin A.",
+        claim_code=pass_match.group(1),
+    )
 
 
 def test_revoked_invite_cannot_be_claimed_after_resync(store):

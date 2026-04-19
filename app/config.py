@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from pathlib import Path
 import os
 
 
@@ -8,7 +7,6 @@ class Settings:
     host: str
     port: int
     database_url: str
-    invites_path: Path
 
     @classmethod
     def load(cls) -> "Settings":
@@ -16,9 +14,4 @@ class Settings:
             host="0.0.0.0",
             port=int(os.getenv("PORT", "8000")),
             database_url=os.getenv("DATABASE_URL", ""),
-            invites_path=Path(
-                os.getenv(
-                    "COMPARISON_INVITES_PATH", "data/comparison_claim_invites.json"
-                )
-            ),
         )

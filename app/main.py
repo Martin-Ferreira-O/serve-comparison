@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
@@ -71,22 +70,9 @@ class ComparisonSyncRequest(BaseModel):
     courses: list[ComparisonCourseRequest] = Field(default_factory=list)
 
 
-def _load_invites(path: Path) -> dict[str, str]:
-    if not path.exists():
-        return {}
-    try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as error:
-        raise RuntimeError(f"Invalid comparison invite file: {path}") from error
-    if not isinstance(raw, dict):
-        raise RuntimeError(f"Invalid comparison invite file: {path}")
-    return {str(name): str(code) for name, code in raw.items()}
-
-
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or Settings.load()
     store = ComparisonSqliteStore(settings.database_url)
-    store.sync_claim_invites(_load_invites(settings.invites_path))
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
     app = FastAPI(title="UA Comparison Dashboard")

@@ -11,8 +11,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def test_dashboard_page_renders(tmp_path, monkeypatch):
-    monkeypatch.setenv("COMPARISON_INVITES_PATH", str(tmp_path / "invites.json"))
+def test_dashboard_page_renders():
     client = TestClient(create_app())
 
     response = client.get("/")
@@ -21,8 +20,7 @@ def test_dashboard_page_renders(tmp_path, monkeypatch):
     assert "Dashboard de comparacion" in response.text
 
 
-def test_dashboard_page_serves_comparison_assets(tmp_path, monkeypatch):
-    monkeypatch.setenv("COMPARISON_INVITES_PATH", str(tmp_path / "invites.json"))
+def test_dashboard_page_serves_comparison_assets():
     client = TestClient(create_app())
 
     response = client.get("/")

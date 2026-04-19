@@ -3,7 +3,6 @@ serve_comparison.egg-info/
 __pycache__/
 **/__pycache__/
 data/*
-!data/comparison_claim_invites.json
 *.sqlite3
 *.sqlite3-shm
 *.sqlite3-wal

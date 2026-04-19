@@ -120,6 +120,21 @@ class ComparisonSqliteStore:
                     (display_name, _hash_token(claim_code)),
                 )
 
+    def add_claim_invite(self, display_name: str, claim_code: str) -> None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                INSERT INTO claim_invites (display_name, claim_code_hash, claimed_at, participant_id)
+                VALUES (%s, %s, NULL, NULL)
+                ON CONFLICT(display_name) DO UPDATE SET claim_code_hash = excluded.claim_code_hash
+                WHERE claim_invites.claimed_at IS NULL
+                RETURNING id
+                """,
+                (display_name, _hash_token(claim_code)),
+            ).fetchone()
+        if row is None:
+            raise PermissionError("claim_invite_already_claimed")
+
     def claim_identity(self, *, display_name: str, claim_code: str) -> str:
         sync_token = secrets.token_urlsafe(24)
         claim_code_hash = _hash_token(claim_code)

@@ -1,4 +1,3 @@
-import json
 import os
 
 import psycopg
@@ -6,6 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import create_app
+from app.persistence.comparison_sqlite_store import ComparisonSqliteStore
 
 pytestmark = pytest.mark.skipif(
     not os.getenv("DATABASE_URL"),
@@ -23,11 +23,7 @@ def clean_db():
         )
 
 
-def test_health_returns_ok(tmp_path, monkeypatch):
-    invites_path = tmp_path / "invites.json"
-    invites_path.write_text("{}", encoding="utf-8")
-    monkeypatch.setenv("COMPARISON_INVITES_PATH", str(invites_path))
-
+def test_health_returns_ok():
     client = TestClient(create_app())
     response = client.get("/health")
 
@@ -36,11 +32,10 @@ def test_health_returns_ok(tmp_path, monkeypatch):
     assert response.json()["database"] == "postgresql"
 
 
-def test_sync_claim_flow_issues_token(tmp_path, monkeypatch):
-    invites_path = tmp_path / "invites.json"
-    invites_path.write_text(json.dumps({"Martin A.": "claim-martin"}), encoding="utf-8")
-    monkeypatch.setenv("COMPARISON_INVITES_PATH", str(invites_path))
-
+def test_sync_claim_flow_issues_token():
+    ComparisonSqliteStore(os.environ["DATABASE_URL"]).add_claim_invite(
+        "Martin A.", "claim-martin"
+    )
     client = TestClient(create_app())
     response = client.post(
         "/api/comparison/sync",
@@ -56,11 +51,10 @@ def test_sync_claim_flow_issues_token(tmp_path, monkeypatch):
     assert response.json()["issued_sync_token"]
 
 
-def test_sync_rejects_invalid_claim_code(tmp_path, monkeypatch):
-    invites_path = tmp_path / "invites.json"
-    invites_path.write_text(json.dumps({"Martin A.": "claim-martin"}), encoding="utf-8")
-    monkeypatch.setenv("COMPARISON_INVITES_PATH", str(invites_path))
-
+def test_sync_rejects_invalid_claim_code():
+    ComparisonSqliteStore(os.environ["DATABASE_URL"]).add_claim_invite(
+        "Martin A.", "claim-martin"
+    )
     client = TestClient(create_app())
     response = client.post(
         "/api/comparison/sync",
